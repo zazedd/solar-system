@@ -1,0 +1,22 @@
+#!/bin/bash
+
+name=$(ggrep -Po "(?<=add_executable\().*?(?=\s)" CMakeLists.txt)
+
+if [ -z "$name" ]; then
+	echo "No executable name on CMakeLists.txt"
+	exit 1
+fi
+
+mkdir -p build
+cd build
+
+cmake ..
+make all
+
+if [ $? -ne 0 ]; then
+	echo "Error: Build failed"
+	exit 1
+fi
+
+cd ..
+./build/$name

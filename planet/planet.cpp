@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <ostream>
 
 // local includes
 #include "camera.h"
@@ -27,13 +28,13 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action,
 void MouseCallback(GLFWwindow *window, double xPos, double yPos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 unsigned int loadCubemap(std::vector<std::string> faces);
-void DoMovement();
+void doMovement();
 
 // Camera
-Camera camera(glm::vec3(40.0f, 0.0f, 30.0f));
+Camera camera(glm::vec3(40.0f, 5.0f, 150.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
-float zNear = 0.1f, zFar = 1000.0f;
+float zNear = 0.1f, zFar = 3500.0f;
 bool firstMouse = true;
 string cameraType = "";
 
@@ -43,9 +44,11 @@ glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
-GLfloat speed = 1.0f;
-GLfloat scale = 0.1f;
-GLfloat AU = 149.597870f;
+GLfloat test = 1.0f;
+GLfloat scale = 1.0f;
+GLfloat AU = 149.597870f; // dividido por 10^6
+GLfloat speed = 0.0000001;
+GLfloat outerSpeed = 0.000001;
 
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
   std::vector<glm::vec3> circlePoints;
@@ -59,16 +62,17 @@ std::vector<glm::vec3> orbitCircle(float radius, int segments) {
 }
 
 // Radiuses are in astronomical units
+// Rotation speeds are in Km/s
 void draw_planet(bool move, int i, float outerRadius, float innerRadius,
                  float outerRotationSpeed, float innerRotationSpeed,
                  float innerYaw, string name, Shader shader, Shader pathShader,
-                 Model planet) {
+                 Model planet, unsigned int nightTextureID = 0) {
   GLfloat angle, radius, x, y;
   glm::mat4 model(1);
 
   // Rotation around the sun
   if (move) {
-    angle = outerRotationSpeed * i * speed;
+    angle = outerRotationSpeed * i;
     radius = outerRadius * AU * scale;
     x = radius * sin(PI * 2 * angle / 360);
     y = radius * cos(PI * 2 * angle / 360);
@@ -108,20 +112,25 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
   }
 
   if (cameraType == name) {
-    camera.Position = (glm::vec3(x + 0.5f, 0.0f, y + 0.5f));
+    camera.Position =
+        (glm::vec3(x + outerRadius + 1.5f, 0.0f, y + outerRadius / 2 + 1.5f));
   }
 
   // Inner rotation
-  angle = innerRotationSpeed * i;
+  angle = innerRotationSpeed * i * 1.35;
   model = glm::rotate(model, innerYaw + angle, glm::vec3(0.0f, 0.1f, 0.0f));
   model = glm::scale(model, glm::vec3(innerRadius * scale));
   shader.setMat4("model", model);
+  if (name == "Earth") {
+    planet.Draw2(shader, "night", nightTextureID);
+    return;
+  }
+
   planet.Draw(shader);
   return;
 }
 
 int system() {
-
   bool move = true;
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -162,6 +171,8 @@ int system() {
 
   Shader shader("resources/shaders/modelLoading.vs",
                 "resources/shaders/modelLoading.frag");
+  Shader earthShader("resources/shaders/earth.vs",
+                     "resources/shaders/earth.frag");
   Shader directionalShader("resources/shaders/directional.vs",
                            "resources/shaders/directional.frag");
   Shader pathShader("resources/shaders/path.vs", "resources/shaders/path.frag");
@@ -180,6 +191,8 @@ int system() {
   Model uranusModel("resources/models/uranus/uranus.obj");
   Model neptuneModel("resources/models/neptune/neptune.obj");
 
+  unsigned int earthNightTextureID =
+      TextureFromFile("resources/models/earth/earthnight.jpg", ".");
   //    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
   // Set light properties
@@ -194,9 +207,18 @@ int system() {
   shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
   shader.setVec3("light.diffuse", 1.5f, 1.5f, 1.5f);
   shader.setVec3("light.specular", 0.3f, 0.3f, 0.3f);
-  shader.setFloat("light.constant", 1.0f);
-  shader.setFloat("light.linear", 0.00002f);
-  shader.setFloat("light.quadratic", 0.000006f);
+  shader.setFloat("light.constant", 1.5f);
+  shader.setFloat("light.linear", 0.0000002f);
+  shader.setFloat("light.quadratic", 0.0000006f);
+
+  earthShader.use();
+  earthShader.setVec3("light.position", lightPos);
+  earthShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+  earthShader.setVec3("light.diffuse", 1.5f, 1.5f, 1.5f);
+  earthShader.setVec3("light.specular", 0.3f, 0.3f, 0.3f);
+  earthShader.setFloat("light.constant", 1.0f);
+  earthShader.setFloat("light.linear", 0.0000002f);
+  earthShader.setFloat("light.quadratic", 0.0000006f);
 
   float skyboxVertices[] = {
       // positions
@@ -244,7 +266,7 @@ int system() {
     lastFrame = currentFrame;
 
     i++;
-    DoMovement();
+    doMovement();
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -272,35 +294,41 @@ int system() {
     shader.setMat4("view", view);
 
     // MERCURY
-    draw_planet(move, i, 0.39f, 1.0f, 0.0008f, 0.0f, 0.0f, "Mercury", shader,
-                pathShader, mercuryModel);
+    draw_planet(move, i, 0.39f, 1.0f, 49.9f * outerSpeed, 10.83f * speed, 0.0f,
+                "Mercury", shader, pathShader, mercuryModel);
 
     // VENUS
-    draw_planet(move, i, 0.72f, 1.0f, 0.007f, 0.0f, 0.0f, "Venus", shader,
-                pathShader, venusModel);
+    draw_planet(move, i, 0.72f, 1.0f, 35.0f * outerSpeed, 6.52f * speed, 0.0f,
+                "Venus", shader, pathShader, venusModel);
     // EARTH
-    draw_planet(move, i, 1.0f, 1.0f, 0.006f, 0.001f, 0.0f, "Earth", shader,
-                pathShader, earthModel);
+
+    earthShader.use();
+    earthShader.setVec3("viewPos", camera.Position);
+    earthShader.setMat4("projection", projection);
+    earthShader.setMat4("view", view);
+    draw_planet(move, i, 1.0f, 1.4f, 29.8f * outerSpeed, 1574.0f * speed, 0.0f,
+                "Earth", earthShader, pathShader, earthModel,
+                earthNightTextureID);
 
     // MARS
-    draw_planet(move, i, 1.52f, 1.0f, 0.005f, 0.0f, 0.0f, "Mars", shader,
-                pathShader, marsModel);
+    draw_planet(move, i, 1.52f, 1.0f, 24.1f * outerSpeed, 866.0f * speed, 0.0f,
+                "Mars", shader, pathShader, marsModel);
 
     // JUPITER
-    draw_planet(move, i, 5.20f, 1.0f, 0.005f, 0.0f, 0.0f, "Jupiter", shader,
-                pathShader, jupiterModel);
+    draw_planet(move, i, 5.20f, 1.0f, 13.1f * outerSpeed, 45583.0f * speed,
+                0.0f, "Jupiter", shader, pathShader, jupiterModel);
 
     // SATURN
-    draw_planet(move, i, 9.54f, 1.0f, 0.004f, 0.0001f, 90.0f, "Saturn", shader,
-                pathShader, saturnModel);
+    draw_planet(move, i, 9.54f, 1.0f, 9.7f * outerSpeed, 36840.0f * speed,
+                90.0f, "Saturn", shader, pathShader, saturnModel);
 
     // Uranus
-    draw_planet(move, i, 19.22f, 1.0f, 0.0035f, 0.00001f, 160.0f, "Uranus",
-                shader, pathShader, uranusModel);
+    draw_planet(move, i, 14.22f, 1.0f, 6.8f * outerSpeed, 14797.0f * speed,
+                160.0f, "Uranus", shader, pathShader, uranusModel);
 
     // NEPTUNE
-    draw_planet(move, i, 30.06f, 1.0f, 0.003f, 0.00001f, 130.0f, "Neptune",
-                shader, pathShader, neptuneModel);
+    draw_planet(move, i, 23.06f, 1.0f, 5.4f * outerSpeed, 9719.0f * speed,
+                130.0f, "Neptune", shader, pathShader, neptuneModel);
 
     // SUN
     lampShader.use();
@@ -342,7 +370,7 @@ int system() {
   return 0;
 }
 
-void DoMovement() {
+void doMovement() {
 
   if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
     camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -370,33 +398,55 @@ void DoMovement() {
 
   if (keys[GLFW_KEY_1]) {
     cameraType = "Mercury";
+    return;
   } else if (keys[GLFW_KEY_2]) {
     cameraType = "Venus";
+    return;
   } else if (keys[GLFW_KEY_3]) {
     cameraType = "Earth";
+    return;
   } else if (keys[GLFW_KEY_4]) {
     cameraType = "Mars";
+    return;
   } else if (keys[GLFW_KEY_5]) {
     cameraType = "Jupiter";
+    return;
   } else if (keys[GLFW_KEY_6]) {
     cameraType = "Saturn";
+    return;
   } else if (keys[GLFW_KEY_7]) {
     cameraType = "Uranus";
+    return;
   } else if (keys[GLFW_KEY_8]) {
     cameraType = "Neptune";
+    return;
   } else if (keys[GLFW_KEY_0]) {
     cameraType = "";
+    return;
   } else if (keys[GLFW_KEY_U]) {
     cameraType = "Up";
+    return;
   }
 
   if (keys[GLFW_KEY_M]) {
-    speed = speed + 0.1f;
-    std::cout << "SPEED : " << speed << std::endl;
+    speed += 0.000001;
+    outerSpeed += 0.00001;
+    std::cout << "SPEED (simulation hours/s) : " << (speed) << std::endl;
+    return;
   } else if (keys[GLFW_KEY_N]) {
-    speed = speed - 0.1f;
-    std::cout << "SPEED : " << speed << std::endl;
+    speed -= 0.000001;
+    outerSpeed -= 0.00001;
+    std::cout << "SPEED (simulation hours/s): " << (speed) << std::endl;
+    return;
   }
+
+  else if (keys[GLFW_KEY_B]) {
+    speed = 0.004380;
+    outerSpeed = 0.04380;
+    std::cout << "SPEED (simulation hours/s) : " << (speed) << std::endl;
+    return;
+  }
+  return;
 }
 
 void KeyCallback(GLFWwindow *window, int key, int scancode, int action,

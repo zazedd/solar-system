@@ -80,6 +80,10 @@ add_executable(solarsystem
   resources/shaders/directional.frag
   resources/shaders/modelLoading.vs
   resources/shaders/modelLoading.frag
+  resources/shaders/earth.vs
+  resources/shaders/earth.frag
+  resources/shaders/path.vs
+  resources/shaders/path.frag
   
 )
 

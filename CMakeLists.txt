@@ -38,11 +38,8 @@ else()
         include_directories(/usr/include/assimp)
         set(ASSIMP assimp.so)
 endif()
-<<<<<<< HEAD
 
 add_subdirectory("libs")
-=======
->>>>>>> 37859da92981a1b910c0fc6486f98724275ef43a
 
 set(ALL_LIBS
  ${OPENGL_LIBRARY}

@@ -26,12 +26,19 @@ include_directories(..)
 include_directories(SOIL2)
 include_directories(planet)
 include_directories(resources)
+if (APPLE)
+        set(ASSIMP assimp::assimp)
+        message("test")
+else()
+        include_directories(/usr/include/assimp)
+        set(ASSIMP assimp.so)
+endif()
 
 set(ALL_LIBS
  ${OPENGL_LIBRARY}
  glfw
  glm::glm
- assimp::assimp
+ ${ASSIMP}
  GLEW::glew
 )
 

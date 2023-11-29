@@ -4,8 +4,10 @@ project (SolarSystem)
 
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
+if (APPLE)
+	find_package(assimp REQUIRED)
+endif()
 find_package(glm REQUIRED)
-find_package(assimp REQUIRED)
 find_package(GLEW REQUIRED)
 
 if( CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR )
@@ -26,12 +28,19 @@ include_directories(..)
 include_directories(SOIL2)
 include_directories(planet)
 include_directories(resources)
+include_directories(/usr/include/assimp)
+if (APPLE)
+	set(ASSIMP assimp::assimp)
+	message("test")
+else()
+	set(ASSIMP assimp.so)
+endif()
 
 set(ALL_LIBS
  ${OPENGL_LIBRARY}
  glfw
  glm::glm
- assimp::assimp
+ ${ASSIMP}
  GLEW::glew
 )
 

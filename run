@@ -1,6 +1,6 @@
 #!/bin/bash
 
-name=$(ggrep -Po "(?<=add_executable\().*?(?=\s)" CMakeLists.txt)
+name=$(grep -Po "(?<=add_executable\().*?(?=\s)" CMakeLists.txt)
 
 if [ -z "$name" ]; then
 	echo "No executable name on CMakeLists.txt"

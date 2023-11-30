@@ -28,7 +28,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(..)
-include_directories(SOIL2)
+include_directories(libs/SOIL2)
 include_directories(planet)
 include_directories(resources)
 if (APPLE)
@@ -60,27 +60,27 @@ add_definitions(
 
 add_executable(solarsystem
   main.cpp
-  SOIL2/SOIL2.c
-  SOIL2/SOIL2.h
-  SOIL2/stb_image.h
-  SOIL2/jo_jpeg.h
-  SOIL2/stbi_DDS.h
-  SOIL2/stbi_ext.h
-  SOIL2/stbi_pkm.h
-  SOIL2/stbi_pvr.h
-  SOIL2/image_DXT.c
-  SOIL2/image_DXT.h
-  SOIL2/etc1_utils.c
-  SOIL2/etc1_utils.h
-  SOIL2/pkm_helper.h
-  SOIL2/pvr_helper.h
-  SOIL2/stbi_DDS_c.h
-  SOIL2/stbi_ext_c.h
-  SOIL2/stbi_pkm_c.h
-  SOIL2/stbi_pvr_c.h
-  SOIL2/image_helper.c
-  SOIL2/image_helper.h
-  SOIL2/stb_image_write.h
+  libs/SOIL2/SOIL2.c
+  libs/SOIL2/SOIL2.h
+  libs/SOIL2/stb_image.h
+  libs/SOIL2/jo_jpeg.h
+  libs/SOIL2/stbi_DDS.h
+  libs/SOIL2/stbi_ext.h
+  libs/SOIL2/stbi_pkm.h
+  libs/SOIL2/stbi_pvr.h
+  libs/SOIL2/image_DXT.c
+  libs/SOIL2/image_DXT.h
+  libs/SOIL2/etc1_utils.c
+  libs/SOIL2/etc1_utils.h
+  libs/SOIL2/pkm_helper.h
+  libs/SOIL2/pvr_helper.h
+  libs/SOIL2/stbi_DDS_c.h
+  libs/SOIL2/stbi_ext_c.h
+  libs/SOIL2/stbi_pkm_c.h
+  libs/SOIL2/stbi_pvr_c.h
+  libs/SOIL2/image_helper.c
+  libs/SOIL2/image_helper.h
+  libs/SOIL2/stb_image_write.h
   planet/camera.h
   planet/mesh.h
   planet/model.h

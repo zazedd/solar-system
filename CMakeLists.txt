@@ -54,6 +54,14 @@ add_definitions(
 
 add_executable(solarsystem
   main.cpp
+  libs/imgui_demo/imgui/imgui.h
+  libs/imgui_demo/imgui/imgui.cpp
+  libs/imgui_demo/imgui/imgui_demo.cpp
+  libs/imgui_demo/imgui/imgui_draw.cpp
+  libs/imgui_demo/imgui/imgui_internal.h
+  libs/imgui_demo/imgui/imgui_tables.cpp
+  libs/imgui_demo/imgui/imgui_widgets.cpp
+  libs/imgui_demo/src/main.cpp
   libs/SOIL2/SOIL2.c
   libs/SOIL2/SOIL2.h
   libs/SOIL2/stb_image.h

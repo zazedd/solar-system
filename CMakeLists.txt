@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.16.3)
-
-project(imgui-cmake LANGUAGES C CXX)
 # CMake entry point
 cmake_minimum_required (VERSION 3.0)
 project (SolarSystem)
@@ -39,15 +36,12 @@ else()
         set(ASSIMP assimp.so)
 endif()
 
-add_subdirectory("libs")
-
 set(ALL_LIBS
  ${OPENGL_LIBRARY}
  glfw
  glm::glm
  ${ASSIMP}
  GLEW::glew
- IMGUI
 )
 
 add_definitions(
@@ -102,11 +96,7 @@ add_executable(solarsystem
 
 )
 
-target_sources(solarsystem PUBLIC ${CMAKE_SOURCE_DIR}/libs/imgui/examples/example_sdl3_opengl3/main.cpp)
-
 target_link_libraries(solarsystem ${ALL_LIBS})
-
-set_target_properties(solarsystem PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 if (APPLE)
   target_link_libraries(solarsystem "-framework Cocoa")

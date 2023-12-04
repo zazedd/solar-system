@@ -26,6 +26,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories(..)
 include_directories(libs/SOIL2)
+include_directories(libs/imgui)
 include_directories(planet)
 include_directories(resources)
 if (APPLE)
@@ -54,14 +55,21 @@ add_definitions(
 
 add_executable(solarsystem
   main.cpp
-  libs/imgui_demo/imgui/imgui.h
-  libs/imgui_demo/imgui/imgui.cpp
-  libs/imgui_demo/imgui/imgui_demo.cpp
-  libs/imgui_demo/imgui/imgui_draw.cpp
-  libs/imgui_demo/imgui/imgui_internal.h
-  libs/imgui_demo/imgui/imgui_tables.cpp
-  libs/imgui_demo/imgui/imgui_widgets.cpp
-  libs/imgui_demo/src/main.cpp
+  libs/imgui/imgui.h
+  libs/imgui/imgui.cpp
+  libs/imgui/imgui_draw.cpp
+  libs/imgui/imgui_internal.h
+  libs/imgui/imgui_tables.cpp
+  libs/imgui/imgui_widgets.cpp
+  libs/imgui/imstb_rectpack.h
+  libs/imgui/imstb_textedit.h
+  libs/imgui/imstb_truetype.h
+  libs/imgui/imgui_impl_glfw.h
+  libs/imgui/imgui_impl_glfw.cpp
+  libs/imgui/imgui_impl_opengl3.h
+  libs/imgui/imgui_impl_opengl3.cpp
+  libs/imgui/imgui_impl_opengl3_loader.h
+  libs/imgui/imconfig.h
   libs/SOIL2/SOIL2.c
   libs/SOIL2/SOIL2.h
   libs/SOIL2/stb_image.h

@@ -17,6 +17,11 @@
 #include "model.h"
 #include "shader.h"
 
+// imgui
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 const GLint WIDTH = 1400, HEIGHT = 800;
 const double PI = 3.141592653589793238463;
 int SCREEN_WIDTH, SCREEN_HEIGHT;

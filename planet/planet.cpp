@@ -71,7 +71,8 @@ std::vector<glm::vec3> orbitCircle(float radius, int segments) {
 void draw_planet(bool move, int i, float outerRadius, float innerRadius,
                  float outerRotationSpeed, float innerRotationSpeed,
                  float innerYaw, string name, Shader shader, Shader pathShader,
-                 Model planet, unsigned int nightTextureID = 0) {
+                 Model planet, unsigned int nightTextureID = 0,
+                 unsigned int cloudTextureID = 0) {
   GLfloat angle, radius, x, y;
   glm::mat4 model(1);
 
@@ -127,7 +128,9 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
   model = glm::scale(model, glm::vec3(innerRadius * scale));
   shader.setMat4("model", model);
   if (name == "Earth") {
-    planet.Draw2(shader, "night", nightTextureID);
+    planet.Draw2(shader, "night", nightTextureID, "cloud", cloudTextureID,
+                 glfwGetTime());
+    printf("%f\n", glfwGetTime());
     return;
   }
 
@@ -198,6 +201,9 @@ int system() {
 
   unsigned int earthNightTextureID =
       TextureFromFile("resources/models/earth/earthnight.jpg", ".");
+
+  unsigned int earthCloudTextureID =
+      TextureFromFile("resources/models/earth/earthclouds.jpg", ".");
   //    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
   // Set light properties
@@ -313,7 +319,7 @@ int system() {
     earthShader.setMat4("view", view);
     draw_planet(move, i, 1.0f, 1.4f, 29.8f * outerSpeed, 1574.0f * speed, 0.0f,
                 "Earth", earthShader, pathShader, earthModel,
-                earthNightTextureID);
+                earthNightTextureID, earthCloudTextureID);
 
     // MARS
     draw_planet(move, i, 1.52f, 1.0f, 24.1f * outerSpeed, 866.0f * speed, 0.0f,

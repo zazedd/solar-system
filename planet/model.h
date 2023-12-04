@@ -45,9 +45,10 @@ public:
       meshes[i].Draw(shader);
   }
 
-  void Draw2(Shader &shader, string name, unsigned int nightID) {
+  void Draw2(Shader &shader, string nightName, unsigned int nightID,
+             string cloudName, unsigned int cloudID, GLfloat time) {
     for (unsigned int i = 0; i < meshes.size(); i++)
-      meshes[i].Draw2(shader, name, nightID);
+      meshes[i].Draw2(shader, nightName, nightID, cloudName, cloudID, time);
   }
 
 private:

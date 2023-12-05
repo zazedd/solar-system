@@ -55,6 +55,9 @@ GLfloat AU = 149.597870f; // dividido por 10^6
 GLfloat speed = 0.0000001;
 GLfloat outerSpeed = 0.000001;
 
+bool menuActive = true;
+bool showPlanetLabels = false;
+
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
   std::vector<glm::vec3> circlePoints;
   for (int i = 0; i < segments; i++) {
@@ -164,7 +167,20 @@ int system() {
   glfwSetScrollCallback(window, scroll_callback);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  // Setup Dear ImGui context
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+  // Setup Platform/Renderer backends
+  ImGui_ImplGlfw_InitForOpenGL(window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+
+  ImGui::StyleColorsDark();
+
+  ImGui_ImplOpenGL3_Init("#version 330 core");
+
   glewExperimental = GL_TRUE;
   if (GLEW_OK != glewInit()) {
     std::cout << "Failed to initialize GLEW" << std::endl;
@@ -272,9 +288,39 @@ int system() {
   unsigned int cubemapTexture = loadCubemap(faces);
   GLuint i = 0;
   while (!glfwWindowShouldClose(window)) {
+
     GLfloat currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+
+    if (menuActive) {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    else {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+      {
+
+            static int counter = 0;
+
+
+            ImGui::Begin("Initial Menu"); // Cria o menu incial
+            // Edit bools storing our window open/close state
+            ImGui::Text("A coisa do to é boa");
+            ImGui::SliderFloat("Velocidade de Rotação", &outerSpeed, 0.0, 1.0); // Altera a velocidade de movimento do planetas
+
+            if (ImGui::Button("Button"))     // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::End();
+        }
 
     i++;
     doMovement();
@@ -373,9 +419,16 @@ int system() {
     glDepthFunc(GL_LESS);
     /* DRAW SKYBOX */
 
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 
   glfwTerminate();
   return 0;
@@ -488,6 +541,7 @@ void MouseCallback(GLFWwindow *window, double xPos, double yPos) {
   lastX = xPos;
   lastY = yPos;
 
+  if (!menuActive)
   camera.ProcessMouseMovement(xOffset, yOffset);
 }
 

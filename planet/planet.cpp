@@ -55,7 +55,7 @@ GLfloat AU = 149.597870f; // dividido por 10^6
 GLfloat speed = 0.0000001;
 GLfloat outerSpeed = 0.000001;
 
-bool menuActive = true;
+bool menuActive = false;
 bool showPlanetLabels = false;
 
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
@@ -133,7 +133,6 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
   if (name == "Earth") {
     planet.Draw2(shader, "night", nightTextureID, "cloud", cloudTextureID,
                  glfwGetTime());
-    printf("%f\n", glfwGetTime());
     return;
   }
 
@@ -170,12 +169,16 @@ int system() {
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+  ImGuiIO &io = ImGui::GetIO();
+  io.ConfigFlags |=
+      ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  io.ConfigFlags |=
+      ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 
   // Setup Platform/Renderer backends
-  ImGui_ImplGlfw_InitForOpenGL(window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+  ImGui_ImplGlfw_InitForOpenGL(
+      window, true); // Second param install_callback=true will install GLFW
+                     // callbacks and chain to existing ones.
 
   ImGui::StyleColorsDark();
 
@@ -203,6 +206,9 @@ int system() {
   Shader skyboxShader("resources/shaders/skybox.vs",
                       "resources/shaders/skybox.frag");
   Shader lampShader("resources/shaders/lamp.vs", "resources/shaders/lamp.frag");
+  Shader screenShader("resources/shaders/framebuffer.vs",
+                      "resources/shaders/framebuffer.frag");
+  Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.frag");
 
   // Load models
   Model earthModel("resources/models/earth/earth.obj");
@@ -247,6 +253,9 @@ int system() {
   earthShader.setFloat("light.linear", 0.0000002f);
   earthShader.setFloat("light.quadratic", 0.0000006f);
 
+  lampShader.use();
+  lampShader.setFloat("sunIntensity", 200.5f);
+
   float skyboxVertices[] = {
       // positions
       -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
@@ -285,6 +294,104 @@ int system() {
       "resources/skybox/bkg1_front.png", "resources/skybox/bkg1_back.png",
   };
 
+  // Post processing effects
+  float quadVertices[] = {// vertex attributes for a quad that fills the entire
+                          // screen in Normalized Device Coordinates.
+                          // positions   // texCoords
+                          -1.0f, 1.0f, 0.0f, 1.0f,  -1.0f, -1.0f,
+                          0.0f,  0.0f, 1.0f, -1.0f, 1.0f,  0.0f,
+
+                          -1.0f, 1.0f, 0.0f, 1.0f,  1.0f,  -1.0f,
+                          1.0f,  0.0f, 1.0f, 1.0f,  1.0f,  1.0f};
+  // screen quad VAO
+  unsigned int quadVAO, quadVBO;
+  glGenVertexArrays(1, &quadVAO);
+  glGenBuffers(1, &quadVBO);
+  glBindVertexArray(quadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices,
+               GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void *)(2 * sizeof(float)));
+
+  screenShader.use();
+  screenShader.setInt("screenTexture", 0);
+  screenShader.setInt("bloomBlur", 1);
+
+  unsigned int framebuffer;
+  glGenFramebuffers(1, &framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+  // create a color attachment texture
+  unsigned int textureColorbuffer;
+  glGenTextures(1, &textureColorbuffer);
+  glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREEN_WIDTH, SCREEN_HEIGHT, 0,
+               GL_RGB, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         textureColorbuffer, 0);
+
+  unsigned int bloomTexture;
+  glGenTextures(1, &bloomTexture);
+  glBindTexture(GL_TEXTURE_2D, bloomTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREEN_WIDTH, SCREEN_HEIGHT, 0,
+               GL_RGB, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                         bloomTexture, 0);
+
+  // create a renderbuffer object for depth and stencil attachment (we won't be
+  // sampling these)
+  unsigned int rbo;
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCREEN_WIDTH,
+                        SCREEN_HEIGHT); // use a single renderbuffer object for
+                                        // both a depth AND stencil buffer.
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                            GL_RENDERBUFFER, rbo); // now actually attach it
+
+  unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+  glDrawBuffers(2, attachments);
+
+  // now that we actually created the framebuffer and added all attachments we
+  // want to check if it is actually complete now
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // ping-pong-framebuffer for gaussian blurring
+  unsigned int pingpongFBO[2];
+  unsigned int pingpongColorbuffers[2];
+  glGenFramebuffers(2, pingpongFBO);
+  glGenTextures(2, pingpongColorbuffers);
+  for (unsigned int i = 0; i < 2; i++) {
+    glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREEN_WIDTH, SCREEN_HEIGHT, 0,
+                 GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+        GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would
+                           // otherwise sample repeated texture values!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           pingpongColorbuffers[i], 0);
+    // also check if framebuffers are complete (no need for depth buffer)
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+      std::cout << "Framebuffer not complete!" << std::endl;
+  }
+
+  blurShader.use();
+  blurShader.setInt("image", 0);
+
   unsigned int cubemapTexture = loadCubemap(faces);
   GLuint i = 0;
   while (!glfwWindowShouldClose(window)) {
@@ -295,8 +402,7 @@ int system() {
 
     if (menuActive) {
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-    else {
+    } else {
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
@@ -304,33 +410,44 @@ int system() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-      {
+    {
 
-            static int counter = 0;
+      ImGui::Begin("Menu"); // Cria o menu incial
+      // Edit bools storing our window open/close state
+      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0,
+                         1.0); // Altera a velocidade de movimento do planetas
 
+      ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planets");
 
-            ImGui::Begin("Menu"); // Cria o menu incial
-            // Edit bools storing our window open/close state
-            ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0, 1.0); // Altera a velocidade de movimento do planetas
+      if (ImGui::Button("Mercury")) {
+      }
+      if (ImGui::Button("Venus")) {
+      }
+      if (ImGui::Button("Earth")) {
+      }
+      if (ImGui::Button("Mars")) {
+      }
+      if (ImGui::Button("Jupiter")) {
+      }
+      if (ImGui::Button("Saturn")) {
+      }
+      if (ImGui::Button("Uranus")) {
+      }
+      if (ImGui::Button("Neptune")) {
+      }
 
-            ImGui::TextColored(ImVec4(1,1,0,1), "Planets");
-            
-            if (ImGui::Button("Mercury"))   { /* Do stuff */ }
-            if (ImGui::Button("Venus"))   { /* Do stuff */ }
-            if (ImGui::Button("Earth"))   { /* Do stuff */ }
-            if (ImGui::Button("Mars"))   { /* Do stuff */ }
-            if (ImGui::Button("Jupiter"))   { /* Do stuff */ }
-            if (ImGui::Button("Saturn"))   { /* Do stuff */ }
-            if (ImGui::Button("Uranus", 10))   { /* Do stuff */ }
-            if (ImGui::Button("Neptune"))   { /* Do stuff */ }
-            
-
-            ImGui::End();
-        }
+      ImGui::End();
+    }
 
     i++;
     doMovement();
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    glClearColor(0.00f, 0.00f, 0.00f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 view = camera.GetViewMatrix();
@@ -425,6 +542,43 @@ int system() {
     glDepthFunc(GL_LESS);
     /* DRAW SKYBOX */
 
+    bool horizontal = true, first_iteration = true;
+    unsigned int amount = 10;
+    blurShader.use();
+    for (unsigned int i = 0; i < amount; i++) {
+      glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+      blurShader.setInt("horizontal", horizontal);
+      glBindTexture(
+          GL_TEXTURE_2D,
+          first_iteration
+              ? bloomTexture
+              : pingpongColorbuffers[!horizontal]); // bind texture of other
+                                                    // framebuffer (or scene if
+                                                    // first iteration)
+      glBindVertexArray(quadVAO);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+      glBindVertexArray(0);
+
+      horizontal = !horizontal;
+      if (first_iteration)
+        first_iteration = false;
+    }
+
+    // now bind back to default framebuffer and draw a quad plane with the
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    screenShader.use();
+    glBindVertexArray(quadVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -456,6 +610,14 @@ void doMovement() {
 
   if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT]) {
     camera.ProcessKeyboard(RIGHT, deltaTime);
+  }
+
+  if (keys[GLFW_KEY_P]) {
+    menuActive = true;
+  }
+
+  if (keys[GLFW_KEY_O]) {
+    menuActive = false;
   }
 
   /* if (keys[GLFW_KEY_MINUS]) { */
@@ -548,7 +710,7 @@ void MouseCallback(GLFWwindow *window, double xPos, double yPos) {
   lastY = yPos;
 
   if (!menuActive)
-  camera.ProcessMouseMovement(xOffset, yOffset);
+    camera.ProcessMouseMovement(xOffset, yOffset);
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
@@ -574,8 +736,8 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
         stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
 
     if (data) {
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
-                   0, GL_RGB, GL_UNSIGNED_BYTE, data);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB, width,
+                   height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
       stbi_image_free(data);
     } else {
       std::cout << "Cubemap texture failed to load at path: " << faces[i]

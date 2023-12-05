@@ -309,15 +309,21 @@ int system() {
             static int counter = 0;
 
 
-            ImGui::Begin("Initial Menu"); // Cria o menu incial
+            ImGui::Begin("Menu"); // Cria o menu incial
             // Edit bools storing our window open/close state
-            ImGui::Text("A coisa do to é boa");
-            ImGui::SliderFloat("Velocidade de Rotação", &outerSpeed, 0.0, 1.0); // Altera a velocidade de movimento do planetas
+            ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0, 1.0); // Altera a velocidade de movimento do planetas
 
-            if (ImGui::Button("Button"))     // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+            ImGui::TextColored(ImVec4(1,1,0,1), "Planets");
+            
+            if (ImGui::Button("Mercury"))   { /* Do stuff */ }
+            if (ImGui::Button("Venus"))   { /* Do stuff */ }
+            if (ImGui::Button("Earth"))   { /* Do stuff */ }
+            if (ImGui::Button("Mars"))   { /* Do stuff */ }
+            if (ImGui::Button("Jupiter"))   { /* Do stuff */ }
+            if (ImGui::Button("Saturn"))   { /* Do stuff */ }
+            if (ImGui::Button("Uranus", 10))   { /* Do stuff */ }
+            if (ImGui::Button("Neptune"))   { /* Do stuff */ }
+            
 
             ImGui::End();
         }

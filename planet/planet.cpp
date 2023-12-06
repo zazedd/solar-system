@@ -55,7 +55,7 @@ GLfloat AU = 149.597870f; // dividido por 10^6
 GLfloat speed = 0.0000001;
 GLfloat outerSpeed = 0.000001;
 
-bool menuActive = false;
+bool menuActive;
 bool showPlanetLabels = false;
 
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
@@ -420,20 +420,28 @@ int system() {
       ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planets");
 
       if (ImGui::Button("Mercury")) {
+        cameraType = "Mercury";
       }
       if (ImGui::Button("Venus")) {
+        cameraType = "Venus";
       }
       if (ImGui::Button("Earth")) {
+        cameraType = "Earth";
       }
       if (ImGui::Button("Mars")) {
+      cameraType = "Mars";
       }
       if (ImGui::Button("Jupiter")) {
+      cameraType = "Jupiter";
       }
       if (ImGui::Button("Saturn")) {
+      cameraType = "Saturn";
       }
       if (ImGui::Button("Uranus")) {
+      cameraType = "Uranus";
       }
       if (ImGui::Button("Neptune")) {
+      cameraType = "Neptune";
       }
 
       ImGui::End();

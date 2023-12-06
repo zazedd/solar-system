@@ -57,6 +57,8 @@ GLfloat speed = 0.0000001;
 GLfloat outerSpeed = 0.000001;
 
 bool menuActive;
+bool bloomActive = true;
+bool lensFlareActive = true;
 bool showPlanetLabels = false;
 
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
@@ -500,10 +502,10 @@ int system() {
 
       ImGui::Begin("Menu"); // Cria o menu incial
       // Edit bools storing our window open/close state
-      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0,
-                         1.0); // Altera a velocidade de movimento do planetas
+      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0f,
+                         0.1f); // Altera a velocidade de movimento do planetas
 
-      ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 200.0);
+      ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 500.0);
 
       ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planets");
 
@@ -537,7 +539,15 @@ int system() {
       if (ImGui::Button("Neptune")) {
         cameraType = "Neptune";
       }
+
+      ImGui::TextColored(ImVec4(1, 1, 0, 1), "Simulation Settings");
+      if (ImGui::Button("Bloom")) {
+        bloomActive = !bloomActive;
+      }
       ImGui::SameLine();
+      if (ImGui::Button("Lens Flare")) {
+        lensFlareActive = !lensFlareActive;
+      }
 
       ImGui::End();
     }
@@ -685,21 +695,27 @@ int system() {
     screenShader.setMat4("view", view);
     screenShader.setMat4("projection", projection);
     screenShader.setVec3("screenLightPos", glm::vec3(sunScreenPos));
+    screenShader.setBool("bloomActive", bloomActive);
 
     // ray casting para saber se o sol esta obstruido
     glm::vec3 rayDirection = glm::normalize(sunSphere.center - camera.Position);
     float rayLength = glm::length(sunSphere.center - camera.Position);
     glm::vec3 rayEndPoint = camera.Position + rayDirection * rayLength;
-    bool sunVisible =
-        !isIntersecting(camera.Position, rayDirection, mercurySphere, 10.0f) &&
-        !isIntersecting(camera.Position, rayDirection, venusSphere, 2.0f) &&
-        !isIntersecting(camera.Position, rayDirection, earthSphere, 2.0f) &&
-        !isIntersecting(camera.Position, rayDirection, marsSphere) &&
-        !isIntersecting(camera.Position, rayDirection, jupiterSphere, 1.5f) &&
-        !isIntersecting(camera.Position, rayDirection, saturnSphere) &&
-        !isIntersecting(camera.Position, rayDirection, uranusSphere) &&
-        !isIntersecting(camera.Position, rayDirection, neptuneSphere);
-    screenShader.setBool("sunVisible", sunVisible);
+    if (lensFlareActive) {
+      bool sunVisible =
+          !isIntersecting(camera.Position, rayDirection, mercurySphere,
+                          10.0f) &&
+          !isIntersecting(camera.Position, rayDirection, venusSphere, 2.0f) &&
+          !isIntersecting(camera.Position, rayDirection, earthSphere, 2.0f) &&
+          !isIntersecting(camera.Position, rayDirection, marsSphere) &&
+          !isIntersecting(camera.Position, rayDirection, jupiterSphere, 1.5f) &&
+          !isIntersecting(camera.Position, rayDirection, saturnSphere) &&
+          !isIntersecting(camera.Position, rayDirection, uranusSphere) &&
+          !isIntersecting(camera.Position, rayDirection, neptuneSphere);
+      screenShader.setBool("sunVisibleAndEnabled", sunVisible);
+    } else {
+      screenShader.setBool("sunVisibleAndEnabled", false);
+    }
 
     glBindVertexArray(quadVAO);
     glActiveTexture(GL_TEXTURE0);

@@ -12,7 +12,8 @@ uniform vec3 tint = vec3(1.4,1.2,1.0);
 uniform int screen_width;
 uniform int screen_height;
 uniform vec3 screenLightPos; 
-uniform bool sunVisible; 
+uniform bool sunVisibleAndEnabled; 
+uniform bool bloomActive; 
 
 uniform float exposure = 0.4;
 uniform float gamma = 2.2;
@@ -106,7 +107,8 @@ void main()
   vec4 bloomTex = texture(bloomBlur, TexCoords);
   vec3 bloomColor = bloomTex.rgb;
 
-  col += bloomColor;
+  if (bloomActive)
+    col += bloomColor;
 
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
   const float adjSpeed = 0.05;
@@ -119,7 +121,7 @@ void main()
   vec3 mapped = vec3(1.0) - exp(-col * sceneExposure);
   mapped = pow(mapped, vec3(1.0 / gamma));
 
-  if (screenLightPos.z < 1 && sunVisible)
+  if (screenLightPos.z < 1 && sunVisibleAndEnabled)
     mapped += LensFlare();
 
   // Output final color

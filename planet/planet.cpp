@@ -121,8 +121,18 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
   }
 
   if (cameraType == name) {
-    camera.Position =
-        (glm::vec3(x + outerRadius + 1.5f, 0.0f, y + outerRadius / 2 + 1.5f));
+    if (name == "Mercury" || name == "Venus" || name == "Earth" || name == "Mars" || name == "Neptune"){
+      camera.Position =
+          (glm::vec3(x + outerRadius + 2.5f, 0.0f, y + outerRadius / 2 + 2.5f));
+    }
+    if (name == "Jupiter" || name == "Saturn") {
+      camera.Position =
+          (glm::vec3(x + outerRadius + 35.0f, 0.0f, y + outerRadius / 2 + 35.0f));
+    }
+    if (name == "Uranus"){
+      camera.Position =
+          (glm::vec3(x + outerRadius + 10.0f, 0.0f, y + outerRadius / 2 + 10.0f));
+    }
   }
 
   // Inner rotation
@@ -414,35 +424,36 @@ int system() {
 
       ImGui::Begin("Menu"); // Cria o menu incial
       // Edit bools storing our window open/close state
-      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0,
-                         1.0); // Altera a velocidade de movimento do planetas
+      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0, 1.0); // Altera a velocidade de movimento do planetas
+
+      ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 200.0);
 
       ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planets");
 
       if (ImGui::Button("Mercury")) {
         cameraType = "Mercury";
-      }
+      } ImGui::SameLine();
       if (ImGui::Button("Venus")) {
         cameraType = "Venus";
-      }
+      } ImGui::SameLine();
       if (ImGui::Button("Earth")) {
         cameraType = "Earth";
-      }
+      } ImGui::SameLine();
       if (ImGui::Button("Mars")) {
       cameraType = "Mars";
-      }
+      } 
       if (ImGui::Button("Jupiter")) {
       cameraType = "Jupiter";
-      }
+      } ImGui::SameLine();
       if (ImGui::Button("Saturn")) {
       cameraType = "Saturn";
-      }
+      } ImGui::SameLine();
       if (ImGui::Button("Uranus")) {
       cameraType = "Uranus";
-      }
+      } ImGui::SameLine();
       if (ImGui::Button("Neptune")) {
-      cameraType = "Neptune";
-      }
+        cameraType = "Neptune";
+      } ImGui::SameLine();
 
       ImGui::End();
     }

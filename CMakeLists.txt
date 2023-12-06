@@ -101,8 +101,6 @@ add_executable(solarsystem
 
   resources/shaders/lamp.vs
   resources/shaders/lamp.frag
-  resources/shaders/directional.vs
-  resources/shaders/directional.frag
   resources/shaders/modelLoading.vs
   resources/shaders/modelLoading.frag
   resources/shaders/earth.vs

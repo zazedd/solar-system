@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <ostream>
 
 // local includes
@@ -22,7 +23,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-const GLint WIDTH = 1400, HEIGHT = 800;
+const GLint WIDTH = 1280, HEIGHT = 720;
 const double PI = 3.141592653589793238463;
 int SCREEN_WIDTH, SCREEN_HEIGHT;
 
@@ -69,15 +70,29 @@ std::vector<glm::vec3> orbitCircle(float radius, int segments) {
   return circlePoints;
 }
 
+struct Sphere {
+  glm::vec3 center;
+  float radius;
+};
+
+Sphere createSphere(float radius, glm::vec3 position) {
+  Sphere sphere;
+  sphere.center = position;
+  sphere.radius = radius;
+  return sphere;
+}
+
 // Radiuses are in astronomical units
 // Rotation speeds are in Km/s
-void draw_planet(bool move, int i, float outerRadius, float innerRadius,
-                 float outerRotationSpeed, float innerRotationSpeed,
-                 float innerYaw, string name, Shader shader, Shader pathShader,
-                 Model planet, unsigned int nightTextureID = 0,
+void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
+                 float outerRadius, float innerRadius, float outerRotationSpeed,
+                 float innerRotationSpeed, float innerYaw, string name,
+                 Shader shader, Shader pathShader, Model planet,
+                 Sphere *sphere = NULL, unsigned int nightTextureID = 0,
                  unsigned int cloudTextureID = 0) {
   GLfloat angle, radius, x, y;
   glm::mat4 model(1);
+  glm::vec3 pos(0);
 
   // Rotation around the sun
   if (move) {
@@ -86,6 +101,10 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
     x = radius * sin(PI * 2 * angle / 360);
     y = radius * cos(PI * 2 * angle / 360);
     model = glm::translate(model, glm::vec3(x, 0.0f, y));
+    pos = glm::vec3(x, 0.0f, y);
+
+    if (sphere != NULL)
+      sphere->center = glm::vec3(x, 0.0f, y);
 
     glm::vec3 pathColor = glm::vec3(0.0f, 0.7f, 0.7f); // Red color
     pathShader.use();
@@ -121,17 +140,18 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
   }
 
   if (cameraType == name) {
-    if (name == "Mercury" || name == "Venus" || name == "Earth" || name == "Mars" || name == "Neptune"){
+    if (name == "Mercury" || name == "Venus" || name == "Earth" ||
+        name == "Mars" || name == "Neptune") {
       camera.Position =
           (glm::vec3(x + outerRadius + 2.5f, 0.0f, y + outerRadius / 2 + 2.5f));
     }
     if (name == "Jupiter" || name == "Saturn") {
-      camera.Position =
-          (glm::vec3(x + outerRadius + 35.0f, 0.0f, y + outerRadius / 2 + 35.0f));
+      camera.Position = (glm::vec3(x + outerRadius + 35.0f, 0.0f,
+                                   y + outerRadius / 2 + 35.0f));
     }
-    if (name == "Uranus"){
-      camera.Position =
-          (glm::vec3(x + outerRadius + 10.0f, 0.0f, y + outerRadius / 2 + 10.0f));
+    if (name == "Uranus") {
+      camera.Position = (glm::vec3(x + outerRadius + 10.0f, 0.0f,
+                                   y + outerRadius / 2 + 10.0f));
     }
   }
 
@@ -148,6 +168,33 @@ void draw_planet(bool move, int i, float outerRadius, float innerRadius,
 
   planet.Draw(shader);
   return;
+}
+
+bool isIntersecting(glm::vec3 rayOrigin, glm::vec3 rayDirection,
+                    const Sphere &sphere, float correction = 1.0f) {
+
+  float cameraToPlanetLength = glm::length(sphere.center - camera.Position);
+  float cutoff = cameraToPlanetLength / AU * correction;
+  glm::vec3 oc = rayOrigin - sphere.center;
+  float a = glm::dot(rayDirection, rayDirection);
+  float b = 2.0f * glm::dot(oc, rayDirection);
+  float c = glm::dot(oc, oc) -
+            (glm::clamp(sphere.radius - cutoff, 0.0f, sphere.radius)) *
+                (glm::clamp(sphere.radius - cutoff, 0.0f, sphere.radius));
+  float discriminant = b * b - 4 * a * c;
+
+  if (discriminant > 0) {
+    // Calculate both possible intersection points
+    float t1 = (-b - sqrt(discriminant)) / (2.0f * a);
+    float t2 = (-b + sqrt(discriminant)) / (2.0f * a);
+
+    // Check if the intersection point is between the camera and the sun
+    if ((t1 >= 0.0f) || (t2 >= 0.0f)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 int system() {
@@ -210,8 +257,6 @@ int system() {
                 "resources/shaders/modelLoading.frag");
   Shader earthShader("resources/shaders/earth.vs",
                      "resources/shaders/earth.frag");
-  Shader directionalShader("resources/shaders/directional.vs",
-                           "resources/shaders/directional.frag");
   Shader pathShader("resources/shaders/path.vs", "resources/shaders/path.frag");
   Shader skyboxShader("resources/shaders/skybox.vs",
                       "resources/shaders/skybox.frag");
@@ -220,6 +265,16 @@ int system() {
                       "resources/shaders/framebuffer.frag");
   Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.frag");
 
+  float lensAperture = 1.0f;
+  float sunRadius = 50.0f;
+  float earthRadius = 1.5f;
+  float mercuryRadius = 0.35f;
+  float venusRadius = 1.0f;
+  float marsRadius = 0.9f;
+  float jupiterRadius = 15.0f - lensAperture;
+  float saturnRadius = 12.0f - lensAperture;
+  float uranusRadius = 10.0f - lensAperture;
+  float neptuneRadius = 10.0f - lensAperture;
   // Load models
   Model earthModel("resources/models/earth/earth.obj");
   Model sunModel("resources/models/sun/sun.obj");
@@ -231,20 +286,36 @@ int system() {
   Model uranusModel("resources/models/uranus/uranus.obj");
   Model neptuneModel("resources/models/neptune/neptune.obj");
 
+  // Spheres for ray cast collisions
+  Sphere sunSphere = createSphere(sunRadius, lightPos);
+  Sphere earthSphere =
+      createSphere(earthRadius, glm::vec3(0.0f, 0.0f, 1.0f * AU));
+  Sphere mercurySphere =
+      createSphere(mercuryRadius, glm::vec3(0.0f, 0.0f, 0.39f * AU));
+  Sphere venusSphere =
+      createSphere(venusRadius, glm::vec3(0.0f, 0.0f, 0.72f * AU));
+  Sphere marsSphere =
+      createSphere(marsRadius, glm::vec3(0.0f, 0.0f, 1.52f * AU));
+  Sphere jupiterSphere =
+      createSphere(jupiterRadius, glm::vec3(0.0f, 0.0f, 5.2f * AU));
+  Sphere saturnSphere =
+      createSphere(saturnRadius, glm::vec3(0.0f, 0.0f, 9.54f * AU));
+  Sphere uranusSphere =
+      createSphere(jupiterRadius, glm::vec3(0.0f, 0.0f, 14.22f * AU));
+  Sphere neptuneSphere =
+      createSphere(jupiterRadius, glm::vec3(0.0f, 0.0f, 23.06f * AU));
+
   unsigned int earthNightTextureID =
       TextureFromFile("resources/models/earth/earthnight.jpg", ".");
 
   unsigned int earthCloudTextureID =
       TextureFromFile("resources/models/earth/earthclouds.jpg", ".");
+
+  unsigned int noiseTextureID =
+      TextureFromFile("resources/models/others/noise.png", ".");
   //    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
   // Set light properties
-  directionalShader.use();
-  directionalShader.setVec3("light.position", lightPos);
-  directionalShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-  directionalShader.setVec3("light.diffuse", 1.5f, 1.5f, 1.5f);
-  directionalShader.setVec3("light.specular", 0.3f, 0.3f, 0.3f);
-
   shader.use();
   shader.setVec3("light.position", lightPos);
   shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
@@ -330,6 +401,13 @@ int system() {
   screenShader.use();
   screenShader.setInt("screenTexture", 0);
   screenShader.setInt("bloomBlur", 1);
+  screenShader.setVec3("lightPos", lightPos);
+  screenShader.setInt("screen_width", SCREEN_WIDTH);
+  screenShader.setInt("screen_height", SCREEN_HEIGHT);
+
+  glActiveTexture(GL_TEXTURE0);
+  screenShader.setInt("noise_texture", 0);
+  glBindTexture(GL_TEXTURE_2D, noiseTextureID);
 
   unsigned int framebuffer;
   glGenFramebuffers(1, &framebuffer);
@@ -387,11 +465,9 @@ int system() {
                  GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(
-        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-        GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would
-                           // otherwise sample repeated texture values!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            pingpongColorbuffers[i], 0);
     // also check if framebuffers are complete (no need for depth buffer)
@@ -424,7 +500,8 @@ int system() {
 
       ImGui::Begin("Menu"); // Cria o menu incial
       // Edit bools storing our window open/close state
-      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0, 1.0); // Altera a velocidade de movimento do planetas
+      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0,
+                         1.0); // Altera a velocidade de movimento do planetas
 
       ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 200.0);
 
@@ -432,28 +509,35 @@ int system() {
 
       if (ImGui::Button("Mercury")) {
         cameraType = "Mercury";
-      } ImGui::SameLine();
+      }
+      ImGui::SameLine();
       if (ImGui::Button("Venus")) {
         cameraType = "Venus";
-      } ImGui::SameLine();
+      }
+      ImGui::SameLine();
       if (ImGui::Button("Earth")) {
         cameraType = "Earth";
-      } ImGui::SameLine();
+      }
+      ImGui::SameLine();
       if (ImGui::Button("Mars")) {
-      cameraType = "Mars";
-      } 
+        cameraType = "Mars";
+      }
       if (ImGui::Button("Jupiter")) {
-      cameraType = "Jupiter";
-      } ImGui::SameLine();
+        cameraType = "Jupiter";
+      }
+      ImGui::SameLine();
       if (ImGui::Button("Saturn")) {
-      cameraType = "Saturn";
-      } ImGui::SameLine();
+        cameraType = "Saturn";
+      }
+      ImGui::SameLine();
       if (ImGui::Button("Uranus")) {
-      cameraType = "Uranus";
-      } ImGui::SameLine();
+        cameraType = "Uranus";
+      }
+      ImGui::SameLine();
       if (ImGui::Button("Neptune")) {
         cameraType = "Neptune";
-      } ImGui::SameLine();
+      }
+      ImGui::SameLine();
 
       ImGui::End();
     }
@@ -474,18 +558,7 @@ int system() {
     glm::mat4 projection = glm::perspective(
         glm::radians(camera.Zoom), (float)WIDTH / (float)HEIGHT, zNear, zFar);
 
-    directionalShader.use();
-    // Give projection and view matrices to light shader
-    directionalShader.setMat4("projection", projection);
-    directionalShader.setMat4("view", view);
-
-    // Model
-
-    // SPACE
     glm::mat4 model(1);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(20.0f));
-    directionalShader.setMat4("model", model);
 
     shader.use();
     shader.setVec3("viewPos", camera.Position);
@@ -493,41 +566,49 @@ int system() {
     shader.setMat4("view", view);
 
     // MERCURY
-    draw_planet(move, i, 0.39f, 1.0f, 49.9f * outerSpeed, 10.83f * speed, 0.0f,
-                "Mercury", shader, pathShader, mercuryModel);
+    draw_planet(move, i, view, projection, 0.39f, 1.0f, 49.9f * outerSpeed,
+                10.83f * speed, 0.0f, "Mercury", shader, pathShader,
+                mercuryModel, &mercurySphere);
 
     // VENUS
-    draw_planet(move, i, 0.72f, 1.0f, 35.0f * outerSpeed, 6.52f * speed, 0.0f,
-                "Venus", shader, pathShader, venusModel);
+    draw_planet(move, i, view, projection, 0.72f, 1.0f, 35.0f * outerSpeed,
+                6.52f * speed, 0.0f, "Venus", shader, pathShader, venusModel,
+                &venusSphere);
     // EARTH
 
     earthShader.use();
     earthShader.setVec3("viewPos", camera.Position);
     earthShader.setMat4("projection", projection);
     earthShader.setMat4("view", view);
-    draw_planet(move, i, 1.0f, 1.4f, 29.8f * outerSpeed, 1574.0f * speed, 0.0f,
-                "Earth", earthShader, pathShader, earthModel,
-                earthNightTextureID, earthCloudTextureID);
+    draw_planet(move, i, view, projection, 1.0f, 1.4f, 29.8f * outerSpeed,
+                1574.0f * speed, 0.0f, "Earth", earthShader, pathShader,
+                earthModel, &earthSphere, earthNightTextureID,
+                earthCloudTextureID);
 
     // MARS
-    draw_planet(move, i, 1.52f, 1.0f, 24.1f * outerSpeed, 866.0f * speed, 0.0f,
-                "Mars", shader, pathShader, marsModel);
+    draw_planet(move, i, view, projection, 1.52f, 1.0f, 24.1f * outerSpeed,
+                866.0f * speed, 0.0f, "Mars", shader, pathShader, marsModel,
+                &marsSphere);
 
     // JUPITER
-    draw_planet(move, i, 5.20f, 1.0f, 13.1f * outerSpeed, 45583.0f * speed,
-                0.0f, "Jupiter", shader, pathShader, jupiterModel);
+    draw_planet(move, i, view, projection, 5.20f, 1.0f, 13.1f * outerSpeed,
+                45583.0f * speed, 0.0f, "Jupiter", shader, pathShader,
+                jupiterModel, &jupiterSphere);
 
     // SATURN
-    draw_planet(move, i, 9.54f, 1.0f, 9.7f * outerSpeed, 36840.0f * speed,
-                90.0f, "Saturn", shader, pathShader, saturnModel);
+    draw_planet(move, i, view, projection, 9.54f, 1.0f, 9.7f * outerSpeed,
+                36840.0f * speed, 90.0f, "Saturn", shader, pathShader,
+                saturnModel, &saturnSphere);
 
     // Uranus
-    draw_planet(move, i, 14.22f, 1.0f, 6.8f * outerSpeed, 14797.0f * speed,
-                160.0f, "Uranus", shader, pathShader, uranusModel);
+    draw_planet(move, i, view, projection, 14.22f, 1.0f, 6.8f * outerSpeed,
+                14797.0f * speed, 160.0f, "Uranus", shader, pathShader,
+                uranusModel, &uranusSphere);
 
     // NEPTUNE
-    draw_planet(move, i, 23.06f, 1.0f, 5.4f * outerSpeed, 9719.0f * speed,
-                130.0f, "Neptune", shader, pathShader, neptuneModel);
+    draw_planet(move, i, view, projection, 23.06f, 1.0f, 5.4f * outerSpeed,
+                9719.0f * speed, 130.0f, "Neptune", shader, pathShader,
+                neptuneModel, &neptuneSphere);
 
     // SUN
     lampShader.use();
@@ -537,6 +618,16 @@ int system() {
     model = glm::mat4(1);
     model = glm::translate(model, lightPos);
     model = glm::scale(model, glm::vec3(scale));
+
+    glm::mat4 sunVp = projection * view;
+    glm::vec4 sunClipCoords = sunVp * glm::vec4(lightPos, 1.0);
+    sunClipCoords /= sunClipCoords.w;
+
+    glm::vec3 sunScreenPos =
+        glm::vec3((sunClipCoords.x + 1.0f) * 0.5f * SCREEN_WIDTH,
+                  (sunClipCoords.y + 1.0f) * 0.5f * SCREEN_HEIGHT,
+                  (sunClipCoords.z + 1.0f) * 0.5f);
+
     shader.setMat4("model", model);
     lampShader.setMat4("model", model);
 
@@ -579,17 +670,37 @@ int system() {
       glBindVertexArray(0);
 
       horizontal = !horizontal;
-      if (first_iteration)
-        first_iteration = false;
+      first_iteration = false;
     }
 
     // now bind back to default framebuffer and draw a quad plane with the
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    /* bool sunVisible = isSunVisible(bloomTexture, 0.0f, 0.0f, 0.0f, 1.0f); */
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     screenShader.use();
+    // Assuming clipSpacePosition is a glm::vec4
+    screenShader.setMat4("view", view);
+    screenShader.setMat4("projection", projection);
+    screenShader.setVec3("screenLightPos", glm::vec3(sunScreenPos));
+
+    // ray casting para saber se o sol esta obstruido
+    glm::vec3 rayDirection = glm::normalize(sunSphere.center - camera.Position);
+    float rayLength = glm::length(sunSphere.center - camera.Position);
+    glm::vec3 rayEndPoint = camera.Position + rayDirection * rayLength;
+    bool sunVisible =
+        !isIntersecting(camera.Position, rayDirection, mercurySphere, 10.0f) &&
+        !isIntersecting(camera.Position, rayDirection, venusSphere, 2.0f) &&
+        !isIntersecting(camera.Position, rayDirection, earthSphere, 2.0f) &&
+        !isIntersecting(camera.Position, rayDirection, marsSphere) &&
+        !isIntersecting(camera.Position, rayDirection, jupiterSphere, 1.5f) &&
+        !isIntersecting(camera.Position, rayDirection, saturnSphere) &&
+        !isIntersecting(camera.Position, rayDirection, uranusSphere) &&
+        !isIntersecting(camera.Position, rayDirection, neptuneSphere);
+    screenShader.setBool("sunVisible", sunVisible);
+
     glBindVertexArray(quadVAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);

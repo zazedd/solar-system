@@ -585,7 +585,6 @@ int system() {
                 6.52f * speed, 0.0f, "Venus", shader, pathShader, venusModel,
                 &venusSphere);
     // EARTH
-
     earthShader.use();
     earthShader.setVec3("viewPos", camera.Position);
     earthShader.setMat4("projection", projection);
@@ -682,6 +681,21 @@ int system() {
       horizontal = !horizontal;
       first_iteration = false;
     }
+
+    // Calculate text position above the Earth (adjust the offset as needed)
+    glm::vec3 earthCenter = /* Calculate the center of the Earth */;
+    float earthRadius = /* Get the radius of the Earth */;
+    glm::vec3 textPosition = earthCenter + glm::vec3(0.0f, earthRadius * 1.5f, 0.0f);
+
+    // Calculate rotation matrix to make the text face the camera
+    glm::mat4 viewMatrix = camera.GetViewMatrix(); // Assuming 'camera' is your camera object
+    glm::mat4 billboardRotation = glm::transpose(glm::inverse(viewMatrix));
+
+    ImGui::Begin("Earth Text");
+    ImGui::SetWindowPos(ImVec2(textPosition.x, textPosition.y));
+    ImGui::Text("Earth");
+    ImGui::End();
+
 
     // now bind back to default framebuffer and draw a quad plane with the
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

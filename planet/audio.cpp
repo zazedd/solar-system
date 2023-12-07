@@ -34,9 +34,6 @@ void initializeMiniaudio() {
 
   gSoloud.play(gWave);
 
-  cout << "Now playing:" << endl;
-  cout << songs[order[0]] << endl;
-
   while (!glfwWindowShouldClose(window)) {
     gSoloud.setGlobalVolume(volume);
 
@@ -59,8 +56,6 @@ void initializeMiniaudio() {
       lastT = t;
       t = 0.0f;
       gSoloud.play(gWave);
-      cout << "Now playing:" << endl;
-      cout << songs[order[current]] << endl;
 
       shouldSkip = false;
     }

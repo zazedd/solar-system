@@ -73,9 +73,8 @@ bool showPlanetLabels = false;
 bool showPlanetTrajectories = true;
 bool shouldSkip = false;
 
-const char *songs[] = {"resources/others/aphextwin-#20.mp3",
-                       "resources/others/bladerunner-rain.mp3",
-                       "resources/others/bladerunner-sapperstree.mp3"};
+const char *songs[] = {"resources/others/1.mp3", "resources/others/2.mp3",
+                       "resources/others/3.mp3"};
 
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
   std::vector<glm::vec3> circlePoints;

@@ -1,6 +1,8 @@
 #include "planet.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
+#include <string>
 #include <thread>
 
 // Lib includes
@@ -493,13 +495,27 @@ int system() {
   blurShader.use();
   blurShader.setInt("image", 0);
 
+  int frameCount = 0;
+  double fps = 0;
+  float lastTime = glfwGetTime();
+  float fpsDeltaTime = 0;
+
   unsigned int cubemapTexture = loadCubemap(faces);
   GLuint i = 0;
   while (!glfwWindowShouldClose(window)) {
 
     GLfloat currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
+    fpsDeltaTime = currentFrame - lastTime;
+
     lastFrame = currentFrame;
+    frameCount++;
+
+    if (fpsDeltaTime >= 1.0) {
+      fps = frameCount / fpsDeltaTime;
+      frameCount = 0;
+      lastTime = currentFrame;
+    }
 
     if (menuActive) {
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -561,6 +577,10 @@ int system() {
       if (ImGui::Button("Lens Flare")) {
         lensFlareActive = !lensFlareActive;
       }
+
+      ImGui::SameLine();
+      ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
+                         std::to_string(fps).c_str());
 
       ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");
       ImGui::SliderFloat("Audio Volume", &volume, 0.0, 1.0f);

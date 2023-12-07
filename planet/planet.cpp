@@ -1,5 +1,7 @@
 #include "planet.hpp"
+#include <algorithm>
 #include <iostream>
+#include <thread>
 
 // Lib includes
 #include <GL/glew.h>
@@ -23,9 +25,14 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+// miniaudio
+#include <audio.h>
+
 const GLint WIDTH = 1280, HEIGHT = 720;
 const double PI = 3.141592653589793238463;
 int SCREEN_WIDTH, SCREEN_HEIGHT;
+
+GLFWwindow *window;
 
 // Function prototypes
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -43,6 +50,7 @@ GLfloat lastX = 400, lastY = 300;
 float zNear = 0.1f, zFar = 3500.0f;
 bool firstMouse = true;
 string cameraType = "";
+float volume = 0.5f;
 
 // Light attributes
 glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
@@ -60,6 +68,11 @@ bool menuActive;
 bool bloomActive = true;
 bool lensFlareActive = true;
 bool showPlanetLabels = false;
+bool shouldSkip = false;
+
+const char *songs[] = {"resources/others/aphextwin-#20.mp3",
+                       "resources/others/bladerunner-rain.mp3",
+                       "resources/others/bladerunner-sapperstree.mp3"};
 
 std::vector<glm::vec3> orbitCircle(float radius, int segments) {
   std::vector<glm::vec3> circlePoints;
@@ -208,9 +221,7 @@ int system() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  GLFWwindow *window =
-      glfwCreateWindow(WIDTH, HEIGHT, "Solar System", nullptr, nullptr);
-
+  window = glfwCreateWindow(WIDTH, HEIGHT, "Solar System", nullptr, nullptr);
   if (nullptr == window) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
@@ -316,6 +327,8 @@ int system() {
   unsigned int noiseTextureID =
       TextureFromFile("resources/models/others/noise.png", ".");
   //    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
+  std::thread audioThread(&initializeMiniaudio);
 
   // Set light properties
   shader.use();
@@ -549,6 +562,13 @@ int system() {
         lensFlareActive = !lensFlareActive;
       }
 
+      ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");
+      ImGui::SliderFloat("Audio Volume", &volume, 0.0, 1.0f);
+
+      if (ImGui::Button("Skip Song")) {
+        shouldSkip = true;
+      }
+
       ImGui::End();
     }
 
@@ -732,6 +752,7 @@ int system() {
     glfwPollEvents();
   }
 
+  audioThread.join();
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();

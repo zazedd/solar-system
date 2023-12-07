@@ -24,14 +24,19 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+add_compile_definitions(WITH_MINIAUDIO)
+
 include_directories(..)
+include_directories(libs)
 include_directories(libs/SOIL2)
 include_directories(libs/imgui)
+include_directories(libs/soloud)
+include_directories(libs/soloud/coreaudio)
+include_directories(libs/soloud/wav)
 include_directories(planet)
 include_directories(resources)
 if (APPLE)
         set(ASSIMP assimp::assimp)
-        message("test")
 else()
         include_directories(/usr/include/assimp)
         set(ASSIMP assimp.so)
@@ -53,61 +58,49 @@ add_definitions(
  -D_CRT_SECURE_NO_WARNINGS
 )
 
+file(GLOB imgui
+     "libs/imgui/*.h"
+     "libs/imgui/*.cpp"
+)
+
+file(GLOB soil2
+     "libs/SOIL2/*.h"
+     "libs/SOIL2/*.c"
+)
+
+file(GLOB soloud
+     "libs/soloud/*.h"
+     "libs/soloud/*.cpp"
+)
+
+file(GLOB soloudBackend
+     "libs/soloud/miniaudio/*.h"
+     "libs/soloud/miniaudio/*.cpp"
+)
+
+file(GLOB soloudWav
+     "libs/soloud/wav/*.h"
+     "libs/soloud/wav/*.cpp"
+)
+
 add_executable(solarsystem
   main.cpp
-  libs/imgui/imgui.h
-  libs/imgui/imgui.cpp
-  libs/imgui/imgui_draw.cpp
-  libs/imgui/imgui_internal.h
-  libs/imgui/imgui_tables.cpp
-  libs/imgui/imgui_widgets.cpp
-  libs/imgui/imstb_rectpack.h
-  libs/imgui/imstb_textedit.h
-  libs/imgui/imstb_truetype.h
-  libs/imgui/imgui_impl_glfw.h
-  libs/imgui/imgui_impl_glfw.cpp
-  libs/imgui/imgui_impl_opengl3.h
-  libs/imgui/imgui_impl_opengl3.cpp
-  libs/imgui/imgui_impl_opengl3_loader.h
-  libs/imgui/imconfig.h
-  libs/SOIL2/SOIL2.c
-  libs/SOIL2/SOIL2.h
-  libs/SOIL2/stb_image.h
-  libs/SOIL2/jo_jpeg.h
-  libs/SOIL2/stbi_DDS.h
-  libs/SOIL2/stbi_ext.h
-  libs/SOIL2/stbi_pkm.h
-  libs/SOIL2/stbi_pvr.h
-  libs/SOIL2/image_DXT.c
-  libs/SOIL2/image_DXT.h
-  libs/SOIL2/etc1_utils.c
-  libs/SOIL2/etc1_utils.h
-  libs/SOIL2/pkm_helper.h
-  libs/SOIL2/pvr_helper.h
-  libs/SOIL2/stbi_DDS_c.h
-  libs/SOIL2/stbi_ext_c.h
-  libs/SOIL2/stbi_pkm_c.h
-  libs/SOIL2/stbi_pvr_c.h
-  libs/SOIL2/image_helper.c
-  libs/SOIL2/image_helper.h
-  libs/SOIL2/stb_image_write.h
   planet/camera.h
   planet/mesh.h
   planet/model.h
   planet/planet.hpp
   planet/planet.cpp
   planet/shader.h
+  planet/audio.cpp
+  planet/audio.h
 
+  libs/stb_vorbis.c
 
-  resources/shaders/lamp.vs
-  resources/shaders/lamp.frag
-  resources/shaders/modelLoading.vs
-  resources/shaders/modelLoading.frag
-  resources/shaders/earth.vs
-  resources/shaders/earth.frag
-  resources/shaders/path.vs
-  resources/shaders/path.frag
-
+  ${imgui}
+  ${soil2}
+  ${soloudWav}
+  ${soloudBackend}
+  ${soloud}
 )
 
 target_link_libraries(solarsystem ${ALL_LIBS})

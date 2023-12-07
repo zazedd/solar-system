@@ -70,6 +70,7 @@ bool menuActive;
 bool bloomActive = true;
 bool lensFlareActive = true;
 bool showPlanetLabels = false;
+bool showPlanetTrajectories = true;
 bool shouldSkip = false;
 
 const char *songs[] = {"resources/others/aphextwin-#20.mp3",
@@ -108,8 +109,15 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
                  Sphere *sphere = NULL, unsigned int nightTextureID = 0,
                  unsigned int cloudTextureID = 0) {
   GLfloat angle, radius, x, y;
+  GLuint vbo, vao;
   glm::mat4 model(1);
   glm::vec3 pos(0);
+
+  glGenBuffers(1, &vbo);
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
   // Rotation around the sun
   if (move) {
@@ -123,35 +131,33 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
     if (sphere != NULL)
       sphere->center = glm::vec3(x, 0.0f, y);
 
-    glm::vec3 pathColor = glm::vec3(0.0f, 0.7f, 0.7f); // Red color
+    glm::vec3 pathColor = glm::vec3(0.15f, 0.15f, 0.15f);
     pathShader.use();
     pathShader.setVec3("pathColor", pathColor);
 
-    int segments = 100;
-    std::vector<glm::vec3> circlePoints = orbitCircle(radius, segments);
-    GLuint vbo, vao;
-    glGenBuffers(1, &vbo);
-    glGenVertexArrays(1, &vao);
+    if (showPlanetTrajectories) {
+      int segments = 100;
+      std::vector<glm::vec3> circlePoints = orbitCircle(radius, segments);
 
-    glBindVertexArray(vao);
+      glBufferData(GL_ARRAY_BUFFER, circlePoints.size() * sizeof(glm::vec3),
+                   &circlePoints[0], GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, circlePoints.size() * sizeof(glm::vec3),
-                 &circlePoints[0], GL_STATIC_DRAW);
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+                            (void *)0);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
-                          (void *)0);
+      pathShader.use();
+      pathShader.setMat4("model", glm::mat4(1.0f));
+      glDrawArrays(GL_LINE_LOOP, 0, circlePoints.size());
 
-    // Draw the orbital path
+      glDeleteBuffers(1, &vbo);
+      glDeleteVertexArrays(1, &vao);
+    }
+
     shader.use();
     shader.setMat4("model", glm::mat4(1.0f));
-    glDrawArrays(GL_LINE_LOOP, 0, circlePoints.size());
 
     glBindVertexArray(0);
-    glDeleteBuffers(1, &vbo);
-    glDeleteVertexArrays(1, &vao);
-
   } else {
     model = glm::translate(model, glm::vec3(outerRadius * scale, 0.0f, 0.0f));
   }
@@ -577,6 +583,9 @@ int system() {
       if (ImGui::Button("Lens Flare")) {
         lensFlareActive = !lensFlareActive;
       }
+      if (ImGui::Button("Planet Trajectory")) {
+        showPlanetTrajectories = !showPlanetTrajectories;
+      }
 
       ImGui::SameLine();
       ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
@@ -614,6 +623,10 @@ int system() {
     shader.setVec3("viewPos", camera.Position);
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
+
+    pathShader.use();
+    pathShader.setMat4("projection", projection);
+    pathShader.setMat4("view", view);
 
     // MERCURY
     draw_planet(move, i, view, projection, 0.39f, 1.0f, 49.9f * outerSpeed,
@@ -702,24 +715,26 @@ int system() {
     /* DRAW SKYBOX */
 
     bool horizontal = true, first_iteration = true;
-    unsigned int amount = 10;
-    blurShader.use();
-    for (unsigned int i = 0; i < amount; i++) {
-      glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
-      blurShader.setInt("horizontal", horizontal);
-      glBindTexture(
-          GL_TEXTURE_2D,
-          first_iteration
-              ? bloomTexture
-              : pingpongColorbuffers[!horizontal]); // bind texture of other
-                                                    // framebuffer (or scene if
-                                                    // first iteration)
-      glBindVertexArray(quadVAO);
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-      glBindVertexArray(0);
+    if (bloomActive) {
+      unsigned int amount = 7;
+      blurShader.use();
+      for (unsigned int i = 0; i < amount; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+        blurShader.setInt("horizontal", horizontal);
+        glBindTexture(
+            GL_TEXTURE_2D,
+            first_iteration
+                ? bloomTexture
+                : pingpongColorbuffers[!horizontal]); // bind texture of other
+                                                      // framebuffer (or scene
+                                                      // if first iteration)
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
 
-      horizontal = !horizontal;
-      first_iteration = false;
+        horizontal = !horizontal;
+        first_iteration = false;
+      }
     }
 
     // now bind back to default framebuffer and draw a quad plane with the

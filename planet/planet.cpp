@@ -605,7 +605,6 @@ int system() {
                 6.52f * speed, 0.0f, "Venus", shader, pathShader, venusModel,
                 &venusSphere);
     // EARTH
-
     earthShader.use();
     earthShader.setVec3("viewPos", camera.Position);
     earthShader.setMat4("projection", projection);

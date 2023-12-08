@@ -76,13 +76,14 @@ bool shouldSkip = false;
 const char *songs[] = {"resources/others/1.mp3", "resources/others/2.mp3",
                        "resources/others/3.mp3"};
 
-std::vector<glm::vec3> orbitCircle(float radius, int segments) {
+std::vector<glm::vec3> orbitCircle(float radius, int segments,
+                                   const glm::vec3 &center) {
   std::vector<glm::vec3> circlePoints;
   for (int i = 0; i < segments; i++) {
     float theta = 2.0f * PI * float(i) / float(segments);
-    float x = radius * sin(theta);
-    float z = radius * cos(theta);
-    circlePoints.push_back(glm::vec3(x, 0.0f, z));
+    float x = center.x + radius * sin(theta);
+    float z = center.z + radius * cos(theta);
+    circlePoints.push_back(glm::vec3(x, center.y, z));
   }
   return circlePoints;
 }
@@ -99,13 +100,26 @@ Sphere createSphere(float radius, glm::vec3 position) {
   return sphere;
 }
 
+void draw_moon(glm::vec3 pos, Model moon, float moonOrbitRadius,
+               float moonOrbitSpeed, Shader shader) {
+  GLfloat radius = AU * moonOrbitRadius;
+  glm::mat4 moonModel = glm::mat4(1.0f);
+  moonModel = glm::translate(moonModel, pos + glm::vec3(radius, 0.0f, radius));
+  moonModel = glm::scale(moonModel, glm::vec3(0.6f, 0.6f, 0.6f));
+
+  shader.use();
+  shader.setMat4("model", moonModel);
+  moon.Draw(shader);
+}
+
 // Radiuses are in astronomical units
 // Rotation speeds are in Km/s
 void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
                  float outerRadius, float innerRadius, float outerRotationSpeed,
                  float innerRotationSpeed, float innerYaw, string name,
                  Shader shader, Shader pathShader, Model planet,
-                 Sphere *sphere = NULL, unsigned int nightTextureID = 0,
+                 Sphere *sphere = NULL, Model *moon = NULL,
+                 unsigned int nightTextureID = 0,
                  unsigned int cloudTextureID = 0) {
   GLfloat angle, radius, x, y;
   GLuint vbo, vao;
@@ -136,7 +150,8 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
 
     if (showPlanetTrajectories) {
       int segments = 100;
-      std::vector<glm::vec3> circlePoints = orbitCircle(radius, segments);
+      std::vector<glm::vec3> circlePoints =
+          orbitCircle(radius, segments, lightPos);
 
       glBufferData(GL_ARRAY_BUFFER, circlePoints.size() * sizeof(glm::vec3),
                    &circlePoints[0], GL_STATIC_DRAW);
@@ -181,13 +196,17 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
   angle = innerRotationSpeed * i * 1.35;
   model = glm::rotate(model, innerYaw + angle, glm::vec3(0.0f, 0.1f, 0.0f));
   model = glm::scale(model, glm::vec3(innerRadius * scale));
-  shader.setMat4("model", model);
   if (name == "Earth") {
+    draw_moon(glm::vec3(x, 0.0f, y), *moon, 0.035f, 0.002f, shader);
+
+    shader.setMat4("model", model);
     planet.Draw2(shader, "night", nightTextureID, "cloud", cloudTextureID,
                  glfwGetTime());
+
     return;
   }
 
+  shader.setMat4("model", model);
   planet.Draw(shader);
   return;
 }
@@ -285,16 +304,15 @@ int system() {
                       "resources/shaders/framebuffer.frag");
   Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.frag");
 
-  float lensAperture = 1.0f;
   float sunRadius = 50.0f;
   float earthRadius = 1.5f;
   float mercuryRadius = 0.35f;
   float venusRadius = 1.0f;
   float marsRadius = 0.9f;
-  float jupiterRadius = 15.0f - lensAperture;
-  float saturnRadius = 12.0f - lensAperture;
-  float uranusRadius = 10.0f - lensAperture;
-  float neptuneRadius = 10.0f - lensAperture;
+  float jupiterRadius = 15.0f;
+  float saturnRadius = 12.0f;
+  float uranusRadius = 10.0f;
+  float neptuneRadius = 10.0f;
   // Load models
   Model earthModel("resources/models/earth/earth.obj");
   Model sunModel("resources/models/sun/sun.obj");
@@ -305,6 +323,7 @@ int system() {
   Model saturnModel("resources/models/saturn/saturn.obj");
   Model uranusModel("resources/models/uranus/uranus.obj");
   Model neptuneModel("resources/models/neptune/neptune.obj");
+  Model moonModel("resources/models/moon/moon.obj");
 
   // Spheres for ray cast collisions
   Sphere sunSphere = createSphere(sunRadius, lightPos);
@@ -643,7 +662,7 @@ int system() {
     earthShader.setMat4("view", view);
     draw_planet(move, i, view, projection, 1.0f, 1.4f, 29.8f * outerSpeed,
                 1574.0f * speed, 0.0f, "Earth", earthShader, pathShader,
-                earthModel, &earthSphere, earthNightTextureID,
+                earthModel, &earthSphere, &moonModel, earthNightTextureID,
                 earthCloudTextureID);
 
     // MARS

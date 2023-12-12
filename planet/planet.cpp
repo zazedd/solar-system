@@ -64,7 +64,7 @@ GLfloat test = 1.0f;
 GLfloat scale = 1.0f;
 GLfloat AU = 149.597870f; // dividido por 10^6
 GLfloat speed = 0.0000001;
-GLfloat outerSpeed = 0.000001;
+GLfloat outerSpeed = 0.0001;
 
 bool menuActive;
 bool bloomActive = true;
@@ -119,7 +119,7 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
                  float innerRotationSpeed, float innerYaw, string name,
                  Shader shader, Shader pathShader, Model planet,
                  Sphere *sphere = NULL, Model *moon = NULL,
-                 unsigned int nightTextureID = 0,
+                 Shader *shader2 = NULL, unsigned int nightTextureID = 0,
                  unsigned int cloudTextureID = 0) {
   GLfloat angle, radius, x, y;
   GLuint vbo, vao;
@@ -196,17 +196,16 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
   angle = innerRotationSpeed * i * 1.35;
   model = glm::rotate(model, innerYaw + angle, glm::vec3(0.0f, 0.1f, 0.0f));
   model = glm::scale(model, glm::vec3(innerRadius * scale));
+  shader.setMat4("model", model);
   if (name == "Earth") {
-    draw_moon(glm::vec3(x, 0.0f, y), *moon, 0.035f, 0.002f, shader);
-
-    shader.setMat4("model", model);
     planet.Draw2(shader, "night", nightTextureID, "cloud", cloudTextureID,
                  glfwGetTime());
+
+    draw_moon(glm::vec3(x, 0.0f, y), *moon, 0.035f, 0.002f, *shader2);
 
     return;
   }
 
-  shader.setMat4("model", model);
   planet.Draw(shader);
   return;
 }
@@ -225,11 +224,9 @@ bool isIntersecting(glm::vec3 rayOrigin, glm::vec3 rayDirection,
   float discriminant = b * b - 4 * a * c;
 
   if (discriminant > 0) {
-    // Calculate both possible intersection points
     float t1 = (-b - sqrt(discriminant)) / (2.0f * a);
     float t2 = (-b + sqrt(discriminant)) / (2.0f * a);
 
-    // Check if the intersection point is between the camera and the sun
     if ((t1 >= 0.0f) || (t2 >= 0.0f)) {
       return true;
     }
@@ -526,6 +523,7 @@ int system() {
 
   unsigned int cubemapTexture = loadCubemap(faces);
   GLuint i = 0;
+  int test = 1;
   while (!glfwWindowShouldClose(window)) {
 
     GLfloat currentFrame = glfwGetTime();
@@ -554,9 +552,9 @@ int system() {
     {
 
       ImGui::Begin("Menu"); // Cria o menu incial
-      // Edit bools storing our window open/close state
-      ImGui::SliderFloat("Rotation Speed", &outerSpeed, 0.0f,
-                         0.1f); // Altera a velocidade de movimento do planetas
+
+      ImGui::SliderInt("Rotation Speed", &test, 1,
+                       1000); // Altera a velocidade de movimento do planetas
 
       ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 500.0);
 
@@ -619,7 +617,7 @@ int system() {
       ImGui::End();
     }
 
-    i++;
+    i += test;
     doMovement();
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -662,8 +660,8 @@ int system() {
     earthShader.setMat4("view", view);
     draw_planet(move, i, view, projection, 1.0f, 1.4f, 29.8f * outerSpeed,
                 1574.0f * speed, 0.0f, "Earth", earthShader, pathShader,
-                earthModel, &earthSphere, &moonModel, earthNightTextureID,
-                earthCloudTextureID);
+                earthModel, &earthSphere, &moonModel, &shader,
+                earthNightTextureID, earthCloudTextureID);
 
     // MARS
     draw_planet(move, i, view, projection, 1.52f, 1.0f, 24.1f * outerSpeed,
@@ -815,20 +813,27 @@ int system() {
 
 void doMovement() {
 
-  if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
-    camera.ProcessKeyboard(FORWARD, deltaTime);
-  }
+  if (cameraType == "") {
+    if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
+      camera.ProcessKeyboard(FORWARD, deltaTime);
+    }
 
-  if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN]) {
-    camera.ProcessKeyboard(BACKWARD, deltaTime);
-  }
+    if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN]) {
+      camera.ProcessKeyboard(BACKWARD, deltaTime);
+    }
 
-  if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT]) {
-    camera.ProcessKeyboard(LEFT, deltaTime);
-  }
+    if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT]) {
+      camera.ProcessKeyboard(LEFT, deltaTime);
+    }
 
-  if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT]) {
-    camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT]) {
+      camera.ProcessKeyboard(RIGHT, deltaTime);
+    }
+  } else {
+    if (keys[GLFW_KEY_W] || keys[GLFW_KEY_S] || keys[GLFW_KEY_A] ||
+        keys[GLFW_KEY_D]) {
+      std::cout << "Clique no 0 para desbloquear a camera" << std::endl;
+    }
   }
 
   if (keys[GLFW_KEY_P]) {

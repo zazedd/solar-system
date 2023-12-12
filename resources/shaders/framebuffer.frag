@@ -111,11 +111,11 @@ void main()
     col += bloomColor;
 
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+
   const float adjSpeed = 0.05;
   float targetExposure = 0.5 / lum * 3.0f; 
   float sceneExposure = mix(exposure, targetExposure, adjSpeed);
 
-  // Clamp exposure within the specified range
   sceneExposure = clamp(exposure, 0.3f, 3.0f);
 
   vec3 mapped = vec3(1.0) - exp(-col * sceneExposure);

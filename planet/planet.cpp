@@ -523,7 +523,7 @@ int system() {
 
   unsigned int cubemapTexture = loadCubemap(faces);
   GLuint i = 0;
-  int test = 1;
+  int speedModifier = 1;
   while (!glfwWindowShouldClose(window)) {
 
     GLfloat currentFrame = glfwGetTime();
@@ -553,7 +553,7 @@ int system() {
 
       ImGui::Begin("Menu"); // Cria o menu incial
 
-      ImGui::SliderInt("Rotation Speed", &test, 1,
+      ImGui::SliderInt("Rotation Speed", &speedModifier, 0,
                        1000); // Altera a velocidade de movimento do planetas
 
       ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 500.0);
@@ -617,7 +617,7 @@ int system() {
       ImGui::End();
     }
 
-    i += test;
+    i += speedModifier;
     doMovement();
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -844,14 +844,6 @@ void doMovement() {
     menuActive = false;
   }
 
-  /* if (keys[GLFW_KEY_MINUS]) { */
-  /*   camera.DecreaseSpeed(); */
-  /* } */
-  /**/
-  /* if (keys[GLFW_KEY_EQUAL]) { */
-  /*   camera.IncreaseSpeed(); */
-  /* } */
-
   if (keys[GLFW_KEY_1]) {
     cameraType = "Mercury";
     return;
@@ -884,24 +876,6 @@ void doMovement() {
     return;
   }
 
-  if (keys[GLFW_KEY_M]) {
-    speed += 0.000001;
-    outerSpeed += 0.00001;
-    std::cout << "SPEED (simulation hours/s) : " << (speed) << std::endl;
-    return;
-  } else if (keys[GLFW_KEY_N]) {
-    speed -= 0.000001;
-    outerSpeed -= 0.00001;
-    std::cout << "SPEED (simulation hours/s): " << (speed) << std::endl;
-    return;
-  }
-
-  else if (keys[GLFW_KEY_B]) {
-    speed = 0.004380;
-    outerSpeed = 0.04380;
-    std::cout << "SPEED (simulation hours/s) : " << (speed) << std::endl;
-    return;
-  }
   return;
 }
 

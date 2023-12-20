@@ -1,5 +1,6 @@
 #include "planet.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -72,6 +73,8 @@ bool lensFlareActive = true;
 bool showPlanetLabels = false;
 bool showPlanetTrajectories = true;
 bool shouldSkip = false;
+
+int blurPasses = 7;
 
 const char *songs[] = {"resources/others/1.mp3", "resources/others/2.mp3",
                        "resources/others/3.mp3"};
@@ -300,6 +303,8 @@ int system() {
   Shader screenShader("resources/shaders/framebuffer.vs",
                       "resources/shaders/framebuffer.frag");
   Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.frag");
+  Shader asteroidShader("resources/shaders/asteroids.vs",
+                        "resources/shaders/modelLoading.frag");
 
   float sunRadius = 50.0f;
   float earthRadius = 1.5f;
@@ -321,6 +326,7 @@ int system() {
   Model uranusModel("resources/models/uranus/uranus.obj");
   Model neptuneModel("resources/models/neptune/neptune.obj");
   Model moonModel("resources/models/moon/moon.obj");
+  Model asteroidModel("resources/models/asteroid/rock.obj");
 
   // Spheres for ray cast collisions
   Sphere sunSphere = createSphere(sunRadius, lightPos);
@@ -372,8 +378,84 @@ int system() {
   earthShader.setFloat("light.linear", 0.0000002f);
   earthShader.setFloat("light.quadratic", 0.0000006f);
 
+  asteroidShader.use();
+  asteroidShader.setVec3("light.position", lightPos);
+  asteroidShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+  asteroidShader.setVec3("light.diffuse", 1.5f, 1.5f, 1.5f);
+  asteroidShader.setVec3("light.specular", 0.3f, 0.3f, 0.3f);
+  asteroidShader.setFloat("light.constant", 1.0f);
+  asteroidShader.setFloat("light.linear", 0.0000002f);
+  asteroidShader.setFloat("light.quadratic", 0.0000006f);
+
   lampShader.use();
   lampShader.setFloat("sunIntensity", 200.5f);
+
+  // GPU Instancing for the asteroids
+  unsigned int amount = 10000;
+  glm::mat4 *modelMatrices;
+  modelMatrices = new glm::mat4[amount];
+  srand(static_cast<unsigned int>(glfwGetTime())); // initialize random seed
+  float asteroidRadius = 3.0f * AU;
+  float offset = 0.2f * AU;
+  for (unsigned int i = 0; i < amount; i++) {
+    glm::mat4 model = glm::mat4(1.0f);
+    // 1. translation: displace along circle with 'radius' in range [-offset,
+    // offset]
+    float angle = (float)i / (float)amount * 360.0f;
+    float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+    float x = sin(angle) * asteroidRadius + displacement;
+    displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+    float y = displacement * 0.4f; // keep height of asteroid field smaller
+                                   // compared to width of x and z
+    displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+    float z = cos(angle) * asteroidRadius + displacement;
+    model = glm::translate(model, glm::vec3(x, y, z));
+
+    // 2. scale: Scale between 0.05 and 0.50f
+    float scale = static_cast<float>((rand() % 20) / 50.0 + 0.05);
+    model = glm::scale(model, glm::vec3(scale));
+
+    // 3. rotation: add random rotation around a (semi)randomly picked rotation
+    // axis vector
+    float rotAngle = static_cast<float>((rand() % 360));
+    model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+    // 4. now add to list of matrices
+    modelMatrices[i] = model;
+  }
+
+  // configure instanced array
+  unsigned int buffer;
+  glGenBuffers(1, &buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, buffer);
+  glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0],
+               GL_STATIC_DRAW);
+
+  // set transformation matrices as an instance vertex attribute
+  for (unsigned int i = 0; i < asteroidModel.meshes.size(); i++) {
+    unsigned int VAO = asteroidModel.meshes[i].VAO;
+    glBindVertexArray(VAO);
+    // set attribute pointers for matrix (4 times vec4)
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                          (void *)0);
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                          (void *)(sizeof(glm::vec4)));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                          (void *)(2 * sizeof(glm::vec4)));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                          (void *)(3 * sizeof(glm::vec4)));
+
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
+
+    glBindVertexArray(0);
+  }
 
   float skyboxVertices[] = {
       // positions
@@ -607,6 +689,8 @@ int system() {
       ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
                          std::to_string(fps).c_str());
 
+      ImGui::SliderInt("Blur Passes", &blurPasses, 0, 10);
+
       ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");
       ImGui::SliderFloat("Audio Volume", &volume, 0.0, 1.0f);
 
@@ -643,6 +727,10 @@ int system() {
     pathShader.use();
     pathShader.setMat4("projection", projection);
     pathShader.setMat4("view", view);
+
+    asteroidShader.use();
+    asteroidShader.setMat4("projection", projection);
+    asteroidShader.setMat4("view", view);
 
     // MERCURY
     draw_planet(move, i, view, projection, 0.39f, 1.0f, 49.9f * outerSpeed,
@@ -711,6 +799,24 @@ int system() {
 
     sunModel.Draw(lampShader);
 
+    model = glm::mat4(1);
+    asteroidShader.use();
+    asteroidShader.setInt("texture_diffuse", 0);
+    asteroidShader.setMat4("model", model);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,
+                  asteroidModel.textures_loaded[0]
+                      .id); // note: we also made the textures_loaded vector
+                            // public (instead of private) from the model class.
+    for (unsigned int i = 0; i < asteroidModel.meshes.size(); i++) {
+      glBindVertexArray(asteroidModel.meshes[i].VAO);
+      glDrawElementsInstanced(
+          GL_TRIANGLES,
+          static_cast<unsigned int>(asteroidModel.meshes[i].indices.size()),
+          GL_UNSIGNED_INT, 0, amount);
+      glBindVertexArray(0);
+    }
+
     if (cameraType == "Up") {
       camera.Position = (glm::vec3(-1.438195, 38.160343, 1.159209));
     }
@@ -732,9 +838,8 @@ int system() {
 
     bool horizontal = true, first_iteration = true;
     if (bloomActive) {
-      unsigned int amount = 7;
       blurShader.use();
-      for (unsigned int i = 0; i < amount; i++) {
+      for (unsigned int i = 0; i < blurPasses; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
         blurShader.setInt("horizontal", horizontal);
         glBindTexture(

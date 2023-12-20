@@ -689,7 +689,7 @@ int system() {
       ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
                          std::to_string(fps).c_str());
 
-      ImGui::SliderInt("Blur Passes", &blurPasses, 0, 10);
+      ImGui::SliderInt("Blur Passes", &blurPasses, 1, 10);
 
       ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");
       ImGui::SliderFloat("Audio Volume", &volume, 0.0, 1.0f);

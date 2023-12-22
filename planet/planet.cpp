@@ -331,7 +331,8 @@ int system() {
 
   cout << "Bem-Vindo!\nKeybinds:\n\tP - Pausar e desbloquear o rato/voltar ao "
           "jogo\n\tL - "
-          "Mostrar Labels dos Planetas\n\tT - Mostrar Trajetoria dos Planetas"
+          "Mostrar/Esconder Labels dos Planetas\n\tT - Mostrar/Esconder "
+          "Trajetoria dos Planetas"
        << endl;
 
   Shader shader("resources/shaders/modelLoading.vs",
@@ -679,18 +680,42 @@ int system() {
 
       if (ImGui::BeginTabBar("Tabs")) {
 
-        // First tab - General Settings
-        if (ImGui::BeginTabItem("General")) {
+        if (ImGui::BeginTabItem("Simulation")) {
 
-          ImGui::TextColored(ImVec4(1, 1, 0, 1), "General Settings");
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Simulation Settings");
+          ImGui::SameLine(ImGui::GetWindowWidth() - 110);
+          ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
+                             std::to_string(fps).c_str());
+
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Speeds");
 
           ImGui::SliderInt("Rotation Speed", &speedModifier, 0, 1000);
           ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 500.0);
 
+          ImGui::Separator();
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Others");
+
+          if (ImGui::Button("Bloom")) {
+            bloomActive = !bloomActive;
+          }
+
+          if (ImGui::Button("Lens Flare")) {
+            lensFlareActive = !lensFlareActive;
+          }
+
+          if (ImGui::Button("Planet Trajectory")) {
+            showPlanetTrajectories = !showPlanetTrajectories;
+          }
+
+          if (ImGui::Button("Planet Labels")) {
+            showPlanetLabels = !showPlanetLabels;
+          }
+
+          ImGui::SliderInt("Blur Passes", &blurPasses, 1, 10);
+
           ImGui::EndTabItem();
         }
 
-        // Second tab - Planets
         if (ImGui::BeginTabItem("Planets")) {
 
           ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planet Cameras");
@@ -738,36 +763,6 @@ int system() {
           ImGui::EndTabItem();
         }
 
-        // Third tab - Simulation Settings
-        if (ImGui::BeginTabItem("Simulation")) {
-
-          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Simulation Settings");
-          ImGui::SameLine(ImGui::GetWindowWidth() - 110);
-          ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
-                             std::to_string(fps).c_str());
-
-          if (ImGui::Button("Bloom")) {
-            bloomActive = !bloomActive;
-          }
-
-          if (ImGui::Button("Lens Flare")) {
-            lensFlareActive = !lensFlareActive;
-          }
-
-          if (ImGui::Button("Planet Trajectory")) {
-            showPlanetTrajectories = !showPlanetTrajectories;
-          }
-
-          if (ImGui::Button("Planet Labels")) {
-            showPlanetLabels = !showPlanetLabels;
-          }
-
-          ImGui::SliderInt("Blur Passes", &blurPasses, 1, 10);
-
-          ImGui::EndTabItem();
-        }
-
-        // Fourth tab - Audio Controls
         if (ImGui::BeginTabItem("Audio")) {
 
           ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");

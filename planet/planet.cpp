@@ -74,7 +74,15 @@ bool showPlanetLabels = false;
 bool showPlanetTrajectories = true;
 bool shouldSkip = false;
 
+const double cooldownDuration = 0.5;
+static double lastKeyPressTime = 0.0;
+
 int blurPasses = 7;
+
+ImGuiWindowFlags label_window_decorations =
+    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+    ImGuiWindowFlags_NoNav;
 
 const char *songs[] = {"resources/others/1.mp3", "resources/others/2.mp3",
                        "resources/others/3.mp3"};
@@ -113,6 +121,36 @@ void draw_moon(glm::vec3 pos, Model moon, float moonOrbitRadius,
   shader.use();
   shader.setMat4("model", moonModel);
   moon.Draw(shader);
+}
+
+void showLabel(GLfloat x, GLfloat y, string name, glm::mat4 projection,
+               glm::mat4 view) {
+  if (!showPlanetLabels)
+    return;
+
+  glm::mat4 vp = projection * view;
+  glm::vec4 clipCoords = vp * glm::vec4(x, 0, y, 1.0);
+  clipCoords /= clipCoords.w;
+
+  glm::vec3 screenPos = glm::vec3((clipCoords.x + 1.0f) * 0.5f * SCREEN_WIDTH,
+                                  (clipCoords.y + 1.0f) * 0.5f * SCREEN_HEIGHT,
+                                  (clipCoords.z + 1.0f) * 0.5f);
+
+  if (screenPos.z < 1) {
+    ImGui::SetNextWindowPos(
+        ImVec2(screenPos.x / 2, (SCREEN_HEIGHT - screenPos.y) / 2),
+        ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.35f);
+
+    if (ImGui::Begin(name.c_str(), &showPlanetLabels,
+                     label_window_decorations)) {
+      ImGui::Text("%s", name.c_str());
+    }
+
+    ImGui::End();
+  }
+
+  return;
 }
 
 // Radiuses are in astronomical units
@@ -200,12 +238,14 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
   model = glm::rotate(model, innerYaw + angle, glm::vec3(0.0f, 0.1f, 0.0f));
   model = glm::scale(model, glm::vec3(innerRadius * scale));
   shader.setMat4("model", model);
+
+  showLabel(x, y, name, projection, view);
+
   if (name == "Earth") {
     planet.Draw2(shader, "night", nightTextureID, "cloud", cloudTextureID,
                  glfwGetTime());
 
     draw_moon(glm::vec3(x, 0.0f, y), *moon, 0.035f, 0.002f, *shader2);
-
     return;
   }
 
@@ -684,6 +724,9 @@ int system() {
       if (ImGui::Button("Planet Trajectory")) {
         showPlanetTrajectories = !showPlanetTrajectories;
       }
+      if (ImGui::Button("Planet Labels")) {
+        showPlanetLabels = !showPlanetLabels;
+      }
 
       ImGui::SameLine();
       ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
@@ -794,6 +837,17 @@ int system() {
                   (sunClipCoords.y + 1.0f) * 0.5f * SCREEN_HEIGHT,
                   (sunClipCoords.z + 1.0f) * 0.5f);
 
+    if (showPlanetLabels && sunScreenPos.z < 1) {
+      ImGui::SetNextWindowPos(
+          ImVec2(sunScreenPos.x / 2, (SCREEN_HEIGHT - sunScreenPos.y) / 2),
+          ImGuiCond_Always);
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      if (ImGui::Begin("Sun", &showPlanetLabels, label_window_decorations))
+        ImGui::Text("Sun");
+
+      ImGui::End();
+    }
+
     shader.setMat4("model", model);
     lampShader.setMat4("model", model);
 
@@ -860,7 +914,6 @@ int system() {
 
     // now bind back to default framebuffer and draw a quad plane with the
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    /* bool sunVisible = isSunVisible(bloomTexture, 0.0f, 0.0f, 0.0f, 1.0f); */
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -917,7 +970,6 @@ int system() {
 }
 
 void doMovement() {
-
   if (cameraType == "") {
     if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
       camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -941,12 +993,21 @@ void doMovement() {
     }
   }
 
-  if (keys[GLFW_KEY_P]) {
-    menuActive = true;
+  double currentTime = glfwGetTime();
+
+  if (keys[GLFW_KEY_P] && currentTime - lastKeyPressTime > cooldownDuration) {
+    menuActive = !menuActive;
+    lastKeyPressTime = currentTime;
   }
 
-  if (keys[GLFW_KEY_O]) {
-    menuActive = false;
+  if (keys[GLFW_KEY_L] && currentTime - lastKeyPressTime > cooldownDuration) {
+    showPlanetLabels = !showPlanetLabels;
+    lastKeyPressTime = currentTime;
+  }
+
+  if (keys[GLFW_KEY_T] && currentTime - lastKeyPressTime > cooldownDuration) {
+    showPlanetTrajectories = !showPlanetTrajectories;
+    lastKeyPressTime = currentTime;
   }
 
   if (keys[GLFW_KEY_1]) {
@@ -1022,7 +1083,8 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   // make sure the viewport matches the new window dimensions; note that width
-  // and height will be significantly larger than specified on retina displays.
+  // and height will be significantly larger than specified on retina
+  // displays.
   glViewport(0, 0, width, height);
 }
 

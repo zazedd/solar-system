@@ -1,6 +1,7 @@
 #include "planet.hpp"
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -50,7 +51,7 @@ void doMovement();
 Camera camera(glm::vec3(40.0f, 5.0f, 150.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
-float zNear = 0.1f, zFar = 3500.0f;
+float zNear = 0.1f, zFar = 4500.0f;
 bool firstMouse = true;
 string cameraType = "";
 float volume = 0.5f;
@@ -125,9 +126,6 @@ void draw_moon(glm::vec3 pos, Model moon, float moonOrbitRadius,
 
 void showLabel(GLfloat x, GLfloat y, string name, glm::mat4 projection,
                glm::mat4 view) {
-  if (!showPlanetLabels)
-    return;
-
   glm::mat4 vp = projection * view;
   glm::vec4 clipCoords = vp * glm::vec4(x, 0, y, 1.0);
   clipCoords /= clipCoords.w;
@@ -149,8 +147,6 @@ void showLabel(GLfloat x, GLfloat y, string name, glm::mat4 projection,
 
     ImGui::End();
   }
-
-  return;
 }
 
 // Radiuses are in astronomical units
@@ -239,7 +235,8 @@ void draw_planet(bool move, int i, glm::mat4 view, glm::mat4 projection,
   model = glm::scale(model, glm::vec3(innerRadius * scale));
   shader.setMat4("model", model);
 
-  showLabel(x, y, name, projection, view);
+  if (showPlanetLabels)
+    showLabel(x, y, name, projection, view);
 
   if (name == "Earth") {
     planet.Draw2(shader, "night", nightTextureID, "cloud", cloudTextureID,
@@ -331,6 +328,11 @@ int system() {
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glfwSwapInterval(0);
+
+  cout << "Bem-Vindo!\nKeybinds:\n\tP - Pausar e desbloquear o rato/voltar ao "
+          "jogo\n\tL - "
+          "Mostrar Labels dos Planetas\n\tT - Mostrar Trajetoria dos Planetas"
+       << endl;
 
   Shader shader("resources/shaders/modelLoading.vs",
                 "resources/shaders/modelLoading.frag");
@@ -675,76 +677,119 @@ int system() {
 
       ImGui::Begin("Menu"); // Cria o menu incial
 
-      ImGui::SliderInt("Rotation Speed", &speedModifier, 0,
-                       1000); // Altera a velocidade de movimento do planetas
+      if (ImGui::BeginTabBar("Tabs")) {
 
-      ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 500.0);
+        // First tab - General Settings
+        if (ImGui::BeginTabItem("General")) {
 
-      ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planets");
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "General Settings");
 
-      if (ImGui::Button("Mercury")) {
-        cameraType = "Mercury";
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Venus")) {
-        cameraType = "Venus";
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Earth")) {
-        cameraType = "Earth";
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Mars")) {
-        cameraType = "Mars";
-      }
-      if (ImGui::Button("Jupiter")) {
-        cameraType = "Jupiter";
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Saturn")) {
-        cameraType = "Saturn";
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Uranus")) {
-        cameraType = "Uranus";
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Neptune")) {
-        cameraType = "Neptune";
-      }
+          ImGui::SliderInt("Rotation Speed", &speedModifier, 0, 1000);
+          ImGui::SliderFloat("Camera Speed", &camera.MovementSpeed, 0.0, 500.0);
 
-      ImGui::TextColored(ImVec4(1, 1, 0, 1), "Simulation Settings");
-      if (ImGui::Button("Bloom")) {
-        bloomActive = !bloomActive;
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Lens Flare")) {
-        lensFlareActive = !lensFlareActive;
-      }
-      if (ImGui::Button("Planet Trajectory")) {
-        showPlanetTrajectories = !showPlanetTrajectories;
-      }
-      if (ImGui::Button("Planet Labels")) {
-        showPlanetLabels = !showPlanetLabels;
-      }
+          ImGui::EndTabItem();
+        }
 
-      ImGui::SameLine();
-      ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
-                         std::to_string(fps).c_str());
+        // Second tab - Planets
+        if (ImGui::BeginTabItem("Planets")) {
 
-      ImGui::SliderInt("Blur Passes", &blurPasses, 1, 10);
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planet Cameras");
 
-      ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");
-      ImGui::SliderFloat("Audio Volume", &volume, 0.0, 1.0f);
+          if (ImGui::Button("Mercury")) {
+            cameraType = "Mercury";
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Venus")) {
+            cameraType = "Venus";
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Earth")) {
+            cameraType = "Earth";
+          }
 
-      if (ImGui::Button("Skip Song")) {
-        shouldSkip = true;
+          ImGui::SameLine();
+          if (ImGui::Button("Mars")) {
+            cameraType = "Mars";
+          }
+
+          if (ImGui::Button("Jupiter")) {
+            cameraType = "Jupiter";
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Saturn")) {
+            cameraType = "Saturn";
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Uranus")) {
+            cameraType = "Uranus";
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Neptune")) {
+            cameraType = "Neptune";
+          }
+
+          ImGui::Separator();
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Other Cameras");
+
+          if (ImGui::Button("Up")) {
+            cameraType = "Up";
+          }
+
+          ImGui::EndTabItem();
+        }
+
+        // Third tab - Simulation Settings
+        if (ImGui::BeginTabItem("Simulation")) {
+
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Simulation Settings");
+          ImGui::SameLine(ImGui::GetWindowWidth() - 110);
+          ImGui::TextColored(ImVec4(0.5, 0.5, 0.5, 1), "FPS: %s",
+                             std::to_string(fps).c_str());
+
+          if (ImGui::Button("Bloom")) {
+            bloomActive = !bloomActive;
+          }
+
+          if (ImGui::Button("Lens Flare")) {
+            lensFlareActive = !lensFlareActive;
+          }
+
+          if (ImGui::Button("Planet Trajectory")) {
+            showPlanetTrajectories = !showPlanetTrajectories;
+          }
+
+          if (ImGui::Button("Planet Labels")) {
+            showPlanetLabels = !showPlanetLabels;
+          }
+
+          ImGui::SliderInt("Blur Passes", &blurPasses, 1, 10);
+
+          ImGui::EndTabItem();
+        }
+
+        // Fourth tab - Audio Controls
+        if (ImGui::BeginTabItem("Audio")) {
+
+          ImGui::TextColored(ImVec4(1, 1, 0, 1), "Audio Controls");
+
+          ImGui::SliderFloat("Audio Volume", &volume, 0.0, 1.0f);
+
+          if (ImGui::Button("Skip Song")) {
+            shouldSkip = true;
+          }
+
+          ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
       }
 
       ImGui::End();
     }
 
     i += speedModifier;
+    if (i == UINT_MAX)
+      i = 0;
     doMovement();
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -872,7 +917,7 @@ int system() {
     }
 
     if (cameraType == "Up") {
-      camera.Position = (glm::vec3(-1.438195, 38.160343, 1.159209));
+      camera.Position = (glm::vec3(0, 1500, 0));
     }
 
     /* DRAW SKYBOX */

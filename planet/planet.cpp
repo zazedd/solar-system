@@ -854,6 +854,7 @@ int system() {
 
     if (showMercuryMenu) { //FEITO
     ImGui::Begin("Mercury Menu", &showMercuryMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 3,3011x10^23 kg");
     ImGui::Text("Volume: 6,083x10^10 km³");
     ImGui::Text("Área da Superfície: 7,48x10^7 km²");
@@ -878,6 +879,7 @@ int system() {
 
     if (showVenusMenu) { //FEITO
     ImGui::Begin("Venus Menu", &showVenusMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 4,8685x10^24 kg");
     ImGui::Text("Volume: 92,843x10^10 km³");
     ImGui::Text("Área da Superfície: 4,60x10^8 km²");
@@ -899,6 +901,7 @@ int system() {
 
     if (showEarthMenu) { //FEITO
     ImGui::Begin("Earth Menu", &showEarthMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 5,9736x10^24 kg");
     ImGui::Text("Volume: 1,08321x10^12 km³");
     ImGui::Text("Área da Superfície: 510.072.000 km²");
@@ -917,6 +920,7 @@ int system() {
 
     if (showMarsMenu) { //FEITO
     ImGui::Begin("Mars Menu", &showMarsMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 6,4174x10^23 kg");
     ImGui::Text("Volume: 1,6318x10^11 km³");
     ImGui::Text("Área da Superfície: 144.798.500 km²");
@@ -936,6 +940,7 @@ int system() {
 
     if (showJupiterMenu) { //FEITO
     ImGui::Begin("Jupiter Menu", &showJupiterMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 1,8986x10^27 kg");
     ImGui::Text("Volume: 1,43128x10^15 km³");
     ImGui::Text("Área da Superfície: 6,21796x10^10 km²");
@@ -955,6 +960,7 @@ int system() {
 
     if (showSaturnMenu) { //FEITO
     ImGui::Begin("Saturn Menu", &showSaturnMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 5,6846x10^26 kg");
     ImGui::Text("Volume: 8,2713x10^14 km³");
     ImGui::Text("Área da Superfície: 4,27x10^10 km²");
@@ -974,6 +980,7 @@ int system() {
 
     if (showUranusMenu) { //FEITO 
     ImGui::Begin("Uranus Menu", &showUranusMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: (8,6810 ± 0,0013)x1025 kg");
     ImGui::Text("Volume: 6,833x10^13 km³");
     ImGui::Text("Área da Superfície: 8,1156x10^9 km²");
@@ -995,6 +1002,7 @@ int system() {
 
     if (showNeptuneMenu) { 
     ImGui::Begin("Neptune Menu", &showNeptuneMenu);
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Características:");
     ImGui::Text("Massa: 1,0243x10^26 kg kg");
     ImGui::Text("Volume: 6,254x10^13 km³");
     ImGui::Text("Área da Superfície: 7,6183x10^9 km²");

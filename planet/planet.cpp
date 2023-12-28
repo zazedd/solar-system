@@ -78,6 +78,14 @@ bool shouldSkip = false;
 const double cooldownDuration = 0.5;
 static double lastKeyPressTime = 0.0;
 
+bool showMercuryMenu = false;
+bool showVenusMenu = false;
+bool showEarthMenu = false;
+bool showMarsMenu = false;
+bool showJupiterMenu = false;
+bool showSaturnMenu = false;
+bool showUranusMenu = false;
+bool showNeptuneMenu = false;
 int blurPasses = 7;
 
 ImGuiWindowFlags label_window_decorations =
@@ -676,7 +684,7 @@ int system() {
 
     {
 
-      ImGui::Begin("Menu"); // Cria o menu incial
+      ImGui::Begin("Menu"); // Cria o menu inicial
 
       if (ImGui::BeginTabBar("Tabs")) {
 
@@ -721,35 +729,97 @@ int system() {
           ImGui::TextColored(ImVec4(1, 1, 0, 1), "Planet Cameras");
 
           if (ImGui::Button("Mercury")) {
+            showMercuryMenu = true;
+            showVenusMenu = false;
+            showEarthMenu = false;
+            showMarsMenu = false;
+            showJupiterMenu = false;
+            showSaturnMenu = false;
+            showUranusMenu = false;
+            showNeptuneMenu = false;
             cameraType = "Mercury";
           }
           ImGui::SameLine();
           if (ImGui::Button("Venus")) {
+            showMercuryMenu = false;
+            showVenusMenu = true;
+            showEarthMenu = false;
+            showMarsMenu = false;
+            showJupiterMenu = false;
+            showSaturnMenu = false;
+            showUranusMenu = false;
+            showNeptuneMenu = false;
             cameraType = "Venus";
           }
           ImGui::SameLine();
           if (ImGui::Button("Earth")) {
+            showMercuryMenu = false;
+            showVenusMenu = false;
+            showEarthMenu = true;
+            showMarsMenu = false;
+            showJupiterMenu = false;
+            showSaturnMenu = false;
+            showUranusMenu = false;
+            showNeptuneMenu = false;
             cameraType = "Earth";
           }
-
           ImGui::SameLine();
           if (ImGui::Button("Mars")) {
+            showMercuryMenu = false;
+            showVenusMenu = false;
+            showEarthMenu = false;
+            showMarsMenu = true;
+            showJupiterMenu = false;
+            showSaturnMenu = false;
+            showUranusMenu = false;
+            showNeptuneMenu = false;
             cameraType = "Mars";
           }
-
           if (ImGui::Button("Jupiter")) {
+            showMercuryMenu = false;
+            showVenusMenu = false;
+            showEarthMenu = false;
+            showMarsMenu = false;
+            showJupiterMenu = true;
+            showSaturnMenu = false;
+            showUranusMenu = false;
+            showNeptuneMenu = false;
             cameraType = "Jupiter";
           }
           ImGui::SameLine();
           if (ImGui::Button("Saturn")) {
+            showMercuryMenu = false;
+            showVenusMenu = false;
+            showEarthMenu = false;
+            showMarsMenu = false;
+            showJupiterMenu = false;
+            showSaturnMenu = true;
+            showUranusMenu = false;
+            showNeptuneMenu = false;
             cameraType = "Saturn";
           }
           ImGui::SameLine();
           if (ImGui::Button("Uranus")) {
+            showMercuryMenu = false;
+            showVenusMenu = false;
+            showEarthMenu = false;
+            showMarsMenu = false;
+            showJupiterMenu = false;
+            showSaturnMenu = false;
+            showUranusMenu = true;
+            showNeptuneMenu = false;
             cameraType = "Uranus";
           }
           ImGui::SameLine();
           if (ImGui::Button("Neptune")) {
+            showMercuryMenu = false;
+            showVenusMenu = false;
+            showEarthMenu = false;
+            showMarsMenu = false;
+            showJupiterMenu = false;
+            showSaturnMenu = false;
+            showUranusMenu = false;
+            showNeptuneMenu = true;
             cameraType = "Neptune";
           }
 
@@ -781,6 +851,170 @@ int system() {
 
       ImGui::End();
     }
+
+    if (showMercuryMenu) { //FEITO
+    ImGui::Begin("Mercury Menu", &showMercuryMenu);
+    ImGui::Text("Massa: 3,3011x10^23 kg");
+    ImGui::Text("Volume: 6,083x10^10 km³");
+    ImGui::Text("Área da Superfície: 7,48x10^7 km²");
+    ImGui::Text("Gravidade à Superfície: 3,7 m/s2");
+    ImGui::Text("Distancia ao sol: 69.816.900 km");
+    ImGui::Text("Duração de um dia: 59 horas");
+    ImGui::Text("Duração de um ano: 88 dias");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Potássio: 31,7%%");
+    ImGui::Text("Sódio: 24,9%%");
+    ImGui::Text("Oxigénio Atómico: 9,5%%");
+    ImGui::Text("Argônio: 7,0%%");
+    ImGui::Text("Hélio: 5,9%%");
+    ImGui::Text("Oxigénio Molecular: 5,6%%");
+    ImGui::Text("Nitrogênio: 5,2%%");
+    ImGui::Text("Dióxido de carbono: 3,6%%");
+    ImGui::Text("Água: 3,4%%");
+    ImGui::Text("Hidrogénio: 3,2%%");
+    ImGui::End();
+  }
+
+
+    if (showVenusMenu) { //FEITO
+    ImGui::Begin("Venus Menu", &showVenusMenu);
+    ImGui::Text("Massa: 4,8685x10^24 kg");
+    ImGui::Text("Volume: 92,843x10^10 km³");
+    ImGui::Text("Área da Superfície: 4,60x10^8 km²");
+    ImGui::Text("Gravidade à Superfície: 8,87 m/s2");
+    ImGui::Text("Distancia ao sol: 108.942.000 km");
+    ImGui::Text("Duração de um dia: 243 dias");
+    ImGui::Text("Duração de um ano: 225 dias");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Dióxido de Carbono: 96,5%%");
+    ImGui::Text("Nitrogênio: 3,5%%");
+    ImGui::Text("Dióxido de Enxofre: 0,015%%");
+    ImGui::Text("Argônio: 0,007%%");
+    ImGui::Text("Vapor de Água: 0,002%%");
+    ImGui::Text("Monóxido de Carbono: 0,0017%%");
+    ImGui::Text("Hélio: 0,0012%%");
+    ImGui::Text("Neônio: 0,0007%%");
+    ImGui::End();
+  }
+
+    if (showEarthMenu) { //FEITO
+    ImGui::Begin("Earth Menu", &showEarthMenu);
+    ImGui::Text("Massa: 5,9736x10^24 kg");
+    ImGui::Text("Volume: 1,08321x10^12 km³");
+    ImGui::Text("Área da Superfície: 510.072.000 km²");
+    ImGui::Text("Gravidade à Superfície: 9,7 m/s2");
+    ImGui::Text("Distancia ao sol: 152.098.232 km");
+    ImGui::Text("Duração de um dia: 23h 56min 4seg");
+    ImGui::Text("Duração de um ano: 365,2563 dias");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Nitrogênio: 78,08%%");
+    ImGui::Text("Oxigênio: 20,95%%");
+    ImGui::Text("Argônio: 0,93%%");
+    ImGui::Text("Dióxido de Carbono: 0,038%%");
+    ImGui::Text("Vapor de Água: ~1%% variável com o clima");
+    ImGui::End();
+  }
+
+    if (showMarsMenu) { //FEITO
+    ImGui::Begin("Mars Menu", &showMarsMenu);
+    ImGui::Text("Massa: 6,4174x10^23 kg");
+    ImGui::Text("Volume: 1,6318x10^11 km³");
+    ImGui::Text("Área da Superfície: 144.798.500 km²");
+    ImGui::Text("Gravidade Equatorial: 3,711 m/s2");
+    ImGui::Text("Distancia ao sol: 249.209.300 km");
+    ImGui::Text("Duração de um dia: 1 dia e 37 minutos");
+    ImGui::Text("Duração de um ano: 687 dias");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Dióxido de carbono: 95,97%%");
+    ImGui::Text("Argônio: 1,93%%");
+    ImGui::Text("Nitrogênio: 1,89%%");
+    ImGui::Text("Oxigênio: 0,146%%");
+    ImGui::Text("Monóido de Carbono: 0,0557%%");
+    ImGui::Text("Outros Elementos: 0,0083%%");
+    ImGui::End();
+  }
+
+    if (showJupiterMenu) { //FEITO
+    ImGui::Begin("Jupiter Menu", &showJupiterMenu);
+    ImGui::Text("Massa: 1,8986x10^27 kg");
+    ImGui::Text("Volume: 1,43128x10^15 km³");
+    ImGui::Text("Área da Superfície: 6,21796x10^10 km²");
+    ImGui::Text("Gravidade Equatorial: 24,79 m/s2");
+    ImGui::Text("Distancia ao sol: 816.520.800 km");
+    ImGui::Text("Duração de um dia: 9 horas e 56 minutos");
+    ImGui::Text("Duração de um ano: 12 anos");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Hidrogénio: 89,8 ± 2,0%%");
+    ImGui::Text("Hélio: 10,2 ± 2,0%%");
+    ImGui::Text("Metano: 0,3%%");
+    ImGui::Text("Amônia: 0,146%%");
+    ImGui::Text("Fósforo: 0,0006%%");
+    ImGui::Text("Vapor de Água: 0,25%%");
+    ImGui::End();
+  }
+
+    if (showSaturnMenu) { //FEITO
+    ImGui::Begin("Saturn Menu", &showSaturnMenu);
+    ImGui::Text("Massa: 5,6846x10^26 kg");
+    ImGui::Text("Volume: 8,2713x10^14 km³");
+    ImGui::Text("Área da Superfície: 4,27x10^10 km²");
+    ImGui::Text("Gravidade Equatorial: 10,44 m/s2");
+    ImGui::Text("Distancia ao sol: 1.513.325.783 km");
+    ImGui::Text("Duração de um dia: 10 horas e 34 minutos");
+    ImGui::Text("Duração de um ano: 29,4 anos");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Hidrogénio: ~96%%");
+    ImGui::Text("Hélio: ~3%%");
+    ImGui::Text("Metano: ~0,04%%");
+    ImGui::Text("Amoníaco: ~0,01%%");
+    ImGui::Text("Deuterídio de Hidrogénio: ~0,01%%");
+    ImGui::Text("Etano: 0,0007%%");
+    ImGui::End();
+  }
+
+    if (showUranusMenu) { //FEITO 
+    ImGui::Begin("Uranus Menu", &showUranusMenu);
+    ImGui::Text("Massa: (8,6810 ± 0,0013)x1025 kg");
+    ImGui::Text("Volume: 6,833x10^13 km³");
+    ImGui::Text("Área da Superfície: 8,1156x10^9 km²");
+    ImGui::Text("Gravidade à Superfície: 8,69 m/s2");
+    ImGui::Text("Distancia ao sol: 3.004.419.704 km");
+    ImGui::Text("Duração de um dia: 17 horas e 14 minutos");
+    ImGui::Text("Duração de um ano: 84 anos");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Hidrogênio: 83 ± 3%%");
+    ImGui::Text("Hélio: 15 ± 3%%");
+    ImGui::Text("Metano: 2,3%%");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Gelos:");
+    ImGui::Text("Amônia");
+    ImGui::Text("Água");
+    ImGui::Text("Hidrosulfureto de Amônio");
+    ImGui::Text("Metano");
+    ImGui::End();
+  }
+
+    if (showNeptuneMenu) { 
+    ImGui::Begin("Neptune Menu", &showNeptuneMenu);
+    ImGui::Text("Massa: 1,0243x10^26 kg kg");
+    ImGui::Text("Volume: 6,254x10^13 km³");
+    ImGui::Text("Área da Superfície: 7,6183x10^9 km²");
+    ImGui::Text("Gravidade à Superfície: 11,15 m/s2");
+    ImGui::Text("Distancia ao sol: 4.553.946.490 km");
+    ImGui::Text("Duração de um dia: 16 horas e 6 minutos");
+    ImGui::Text("Duração de um ano: 165 anos");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Composição da Atmosfera:");
+    ImGui::Text("Hidrogênio: 80 ± 3,2%%");
+    ImGui::Text("Hélio: 19 ± 3.2%%");
+    ImGui::Text("Metano: 1.5 ± 0.5%%");
+    ImGui::Text("Deuterídio de Hidrogênio: 0,019%%");
+    ImGui::Text("Etano: 0,00015%%");
+    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Gelos:");
+    ImGui::Text("Amoníaco");
+    ImGui::Text("Água");
+    ImGui::Text("Hidrosulfureto de Amônio");
+    ImGui::Text("Hidrato de Metano");
+    ImGui::End();
+  }
 
     i += speedModifier;
     if (i == UINT_MAX)

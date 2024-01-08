@@ -130,13 +130,15 @@ void showLabel(GLfloat x, GLfloat y, string name, glm::mat4 projection,
   glm::vec4 clipCoords = vp * glm::vec4(x, 0, y, 1.0);
   clipCoords /= clipCoords.w;
 
+  int div = (((float)SCREEN_HEIGHT / SCREEN_WIDTH) == 1.6f) ? 2 : 1;
+
   glm::vec3 screenPos = glm::vec3((clipCoords.x + 1.0f) * 0.5f * SCREEN_WIDTH,
                                   (clipCoords.y + 1.0f) * 0.5f * SCREEN_HEIGHT,
                                   (clipCoords.z + 1.0f) * 0.5f);
 
   if (screenPos.z < 1) {
     ImGui::SetNextWindowPos(
-        ImVec2(screenPos.x / 2, (SCREEN_HEIGHT - screenPos.y) / 2),
+        ImVec2(screenPos.x / div, (SCREEN_HEIGHT - screenPos.y) / div),
         ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.35f);
 
@@ -999,6 +1001,8 @@ int system() {
     glm::vec4 sunClipCoords = sunVp * glm::vec4(lightPos, 1.0);
     sunClipCoords /= sunClipCoords.w;
 
+    int div = (((float)SCREEN_HEIGHT / SCREEN_WIDTH) == 1.6f) ? 2 : 1;
+
     glm::vec3 sunScreenPos =
         glm::vec3((sunClipCoords.x + 1.0f) * 0.5f * SCREEN_WIDTH,
                   (sunClipCoords.y + 1.0f) * 0.5f * SCREEN_HEIGHT,
@@ -1006,7 +1010,7 @@ int system() {
 
     if (showPlanetLabels && sunScreenPos.z < 1) {
       ImGui::SetNextWindowPos(
-          ImVec2(sunScreenPos.x / 2, (SCREEN_HEIGHT - sunScreenPos.y) / 2),
+          ImVec2(sunScreenPos.x / div, (SCREEN_HEIGHT - sunScreenPos.y) / div),
           ImGuiCond_Always);
       ImGui::SetNextWindowBgAlpha(0.35f);
       if (ImGui::Begin("Sun", &showPlanetLabels, label_window_decorations))

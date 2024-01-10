@@ -160,53 +160,11 @@ Sphere earthSphere =
 \end{lstlisting}
 
 \noindent
-Para os asteróides, antes do \textit{loop}, calculamos todas as coordenadas e desenhamos os mesmos. 
-
-\begin{lstlisting}[style=Cpp, caption=Colisões parte 2]
-glm::mat4 model = glm::mat4(1.0f);
-// 1. translation: displace along circle with 'radius' in range [-offset,
-// offset]
-float angle = (float)i / (float)amount * 360.0f;
-float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-float x = sin(angle) * asteroidRadius + displacement;
-displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-float y = displacement * 0.4f; // keep height of asteroid field smaller
-                               // compared to width of x and z
-displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-float z = cos(angle) * asteroidRadius + displacement;
-model = glm::translate(model, glm::vec3(x, y, z));
-
-// 2. scale: Scale between 0.05 and 0.50f
-float scale = static_cast<float>((rand() % 20) / 50.0 + 0.05);
-model = glm::scale(model, glm::vec3(scale));
-
-// 3. rotation: add random rotation around a (semi)randomly picked rotation
-// axis vector
-float rotAngle = static_cast<float>((rand() % 360));
-model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
-\end{lstlisting}
-
-\noindent
-Fazemos isso para cada asteróide que vamos colocar. O número de asteróides é pré-definido e fixo ao longo de todo o sistema. Logo depois de guardarmos os dados provenientes dos cálculos aplicados vamos colocar tudo num \textit{buffer} da \ac{GPU} e vamos também carregar as \textit{meshs} dos asteróides.
-
-\noindent
-O resultado dos asteróides é mostrado abaixo.
-
-\enlargethispage{1in}
-\thispagestyle{empty}
-\begin{figure}[h]
-\centering
-\includegraphics[width=400pt]{asteroides.png}
-\caption{Asteróides}
-\end{figure}
-
-\noindent
 Iniciamos ainda os \textit{cube maps} que serão explicados em detalhe no capítulo \ref{chap2:sec:cube_maps}.
 
 \noindent
 Ainda antes de iniciarmos o \textit{loop} do sistema, inicializamos o nosso áudio, referido no capítulo \ref{chap2:sec:musica}.
 
-\newpage
 \subsection{\textit{Loop} Principal}
 
 \noindent
@@ -234,7 +192,7 @@ A cada \textit{frame} é desenhado o menu lateral que permite controlar e mostra
 \end{figure}
 
 \noindent
-Na imagem a cima, é possível verificar que conseguimos controlar velocidades, ligar e desligar opções como o \textit{lens flare} e controlar o nivel de \textit{blur}.
+Na imagem acima, é possível verificar que conseguimos controlar velocidades, ligar e desligar opções como o \textit{lens flare} e controlar o nivel de \textit{blur}.
 Para trocarmos entre utilizar a câmera e o menu só precisamos de pressionar a tecla \textbf{P}.
 
 \noindent
@@ -251,12 +209,144 @@ Incluimos também menus com informações sobre cada planeta, para que não falt
 \newpage
 
 \noindent
-Fazemos as \textit{labels} dos planetas com o auxílio dos menus do \ac{IMGUI}. Podemos ativar e desativar com o menu, ou pressionando a letra \textbf{L}.
+Fazemos as \textit{labels} dos planetas com o auxílio dos menus do \ac{IMGUI}. Podemos ativar e desativar com o menu, ou pressionando a letra \textbf{L}. Para isso encontramos a posição atual de cada planeta no ecrã. Se este não estiver visível saltamos a renderização da \textit{label}, se estiver, colocamos um menu do \ac{IMGUI} na posição desse planeta com o seu respetivo nome:
 
-\begin{figure}[h]
+\begin{lstlisting}[style=Cpp, caption=Labels]
+void showLabel(GLfloat x, GLfloat y, string name, glm::mat4 projection,
+               glm::mat4 view) {
+  glm::mat4 vp = projection * view;
+  glm::vec4 clipCoords = vp * glm::vec4(x, 0, y, 1.0);
+  clipCoords /= clipCoords.w;
+
+  int div = (((float)SCREEN_HEIGHT / SCREEN_WIDTH) == 1.6f) ? 2 : 1;
+
+  glm::vec3 screenPos = glm::vec3((clipCoords.x + 1.0f) * 0.5f * SCREEN_WIDTH,
+                                  (clipCoords.y + 1.0f) * 0.5f * SCREEN_HEIGHT,
+                                  (clipCoords.z + 1.0f) * 0.5f);
+
+  if (screenPos.z < 1) {
+    ImGui::SetNextWindowPos(
+        ImVec2(screenPos.x / div, (SCREEN_HEIGHT - screenPos.y) / div),
+        ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.35f);
+
+    if (ImGui::Begin(name.c_str(), &showPlanetLabels,
+                     label_window_decorations)) {
+      ImGui::Text("%s", name.c_str());
+    }
+
+    ImGui::End();
+  }
+}   
+\end{lstlisting}
+
+\newpage
+\noindent
+O resultado é o seguinte:
+
+\begin{figure}[H]
     \centering
     \includegraphics[width=200pt]{labels.png}
     \caption{\textit{Labels}}
+\end{figure}
+
+\subsection{Trajetórias}
+\label{chap2:sec:traj}
+
+\noindent
+Para desenhar as trajetórias o processo foi simples. Começámos por calcular a órbita de cada planeta e armazenar cada ponto das mesmas num \textit{array}, ao qual demos o nome de \textit{circlePoints}.
+Para não gerar confusão, ao longo do nosso projeto e deste documento decidimos chamar de \textbf{órbita} o movimento descrito pelos planetas e de \textbf{trajetória} as linhas descritas pelos mesmos.
+
+\begin{lstlisting}[caption = Cálculo da órbita e \textit{Array circlePoints}]
+angle = outerRotationSpeed * i;
+radius = outerRadius * AU * scale;
+x = radius * sin(PI * 2 * angle / 360);
+y = radius * cos(PI * 2 * angle / 360);
+model = glm::translate(model, glm::vec3(x, 0.0f, y));
+pos = glm::vec3(x, 0.0f, y);
+
+std::vector<glm::vec3> orbitCircle(float radius, int segments, 
+                                    const glm::vec3 &center) 
+{
+  std::vector<glm::vec3> circlePoints;
+  for (int i = 0; i < segments; i++) {
+    float theta = 2.0f * PI * float(i) / float(segments);
+    float x = center.x + radius * sin(theta);
+    float z = center.z + radius * cos(theta);
+    circlePoints.push_back(glm::vec3(x, center.y, z));
+  }
+  return circlePoints;
+}
+\end{lstlisting}
+
+\noindent
+De seguida desenhamos, para cada planeta e se a variável \textit{showPlanetTrajectories} for \textit{true}, um ponto em cada posição armazenada no \textit{array}, obtendo assim o resultado desejado.
+
+\begin{lstlisting}[caption = Desenho das trajetórias]
+if (showPlanetTrajectories) {
+      int segments = 100;
+      std::vector<glm::vec3> circlePoints =
+          orbitCircle(radius, segments, lightPos);
+
+      glBufferData(GL_ARRAY_BUFFER, 
+                    circlePoints.size() * sizeof(glm::vec3), 
+                    &circlePoints[0], GL_STATIC_DRAW);
+
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 
+                            sizeof(glm::vec3), (void *)0);
+
+      pathShader.use();
+      pathShader.setMat4("model", glm::mat4(1.0f));
+      glDrawArrays(GL_LINE_LOOP, 0, circlePoints.size());
+
+      glDeleteBuffers(1, &vbo);
+      glDeleteVertexArrays(1, &vao);
+    }
+\end{lstlisting}
+
+\subsection{Asteróides}
+\label{chap2:sec:asteroides}
+
+\noindent
+Para renderizar os asteróides tiramos partido de uma técnica chamada \textit{GPU Instancing}. Antes do \textit{loop}, calculamos as coordenadas de cada asteróide, adicionando alguma randomização à posição central da cintura de asteróides, e desenhamos os mesmos. 
+
+\begin{lstlisting}[style=Cpp, caption=Colisões parte 2]
+glm::mat4 model = glm::mat4(1.0f);
+// 1. translation: displace along circle with 'radius' in range [-offset,
+// offset]
+float angle = (float)i / (float)amount * 360.0f;
+float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+float x = sin(angle) * asteroidRadius + displacement;
+displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+float y = displacement * 0.4f; // keep height of asteroid field smaller
+                               // compared to width of x and z
+displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+float z = cos(angle) * asteroidRadius + displacement;
+model = glm::translate(model, glm::vec3(x, y, z));
+
+// 2. scale: Scale between 0.05 and 0.50f
+float scale = static_cast<float>((rand() % 20) / 50.0 + 0.05);
+model = glm::scale(model, glm::vec3(scale));
+
+// 3. rotation: add random rotation around a (semi)randomly picked rotation
+// axis vector
+float rotAngle = static_cast<float>((rand() % 360));
+model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+\end{lstlisting}
+
+\noindent
+O número de asteróides é pré-definido e fixo ao longo de todo o sistema. Logo depois de guardarmos os dados provenientes dos cálculos aplicados colocamos tudo num \textit{buffer} passado à \ac{GPU} e carregamos as \textit{meshes} dos asteróides. No loop principal tratamos de desenhar essas meshes.
+
+\noindent
+O resultado é mostrado abaixo.
+
+\enlargethispage{1in}
+\thispagestyle{empty}
+\begin{figure}[h]
+\centering
+\includegraphics[width=400pt]{asteroides.png}
+\caption{Asteróides}
 \end{figure}
 
 \subsection{\textit{Cube Maps}}
@@ -350,7 +440,6 @@ Para as técnicas de \textit{Post-processing} que vamos explicar a seguir tivemo
     \item \textit{Tone-mapping}: É o processo de transformar números de precisão \textit{float} no limite [0.0; 1.0] esperado sem perder muito detalhe. Para usar este processo decidimos usar uma implementação com \textit{exposure} e \textit{gamma correction}.
 \end{enumerate}
 
-\newpage
 \begin{lstlisting}[style=Cpp, caption=\textit{Fragment Shader} do \textit{framebuffer} para a \textit{exposure}]
 void main() {
   ...
@@ -462,7 +551,6 @@ void main() {
 }
 \end{lstlisting}
 
-\newpage
 \subsection{\textit{Lens Flare}}
 
 Um \textit{lens flare} é um efeito físico das câmeras reais que acontece quando uma luz intensa atinge o sistema de lentes de vidro que constituí a câmera. Este efeito estilístico faz com que a simulação pareça mais real, pois parece que estamos a ver algo gravado numa câmera verdadeira.
@@ -549,7 +637,6 @@ std::thread audioThread(&initializeMiniaudio);
 \noindent
 Três sons são escolhidos aleatoriamente ao iniciar o sistema. Podemos trocar os mesmos por via do menu principal, e baixar ou aumentar o seu volume.
 
-\newpage
 \section{Conclusão}
 \label{chap2:sec:concs}
 

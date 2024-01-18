@@ -34,7 +34,7 @@ It is assumed you have installed `OpenGL`, `glfw3`, `glew`, `glm` and `assimp` w
 
 ## Screenshots
 ![Planets](.github/planets.png)
-![Earth](.github/earth_planets.png)
+![Earth](.github/earth_planet.png)
 ![Earth Clouds](.github/earth_clouds.png)
 
 ## Credits

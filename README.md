@@ -44,7 +44,9 @@ It is assumed you have installed `OpenGL`, `glfw3`, `glew`, `glm` and `assimp` w
 We do not own, distribute or profit off of this music.
 If you wish to get the full experience, legally download the songs,
 name them `"1.mp3"` through `"3.mp3"` in any order, and place them
-in the `resources/others/` directory, 
+in the `resources/others/` directory.
+
+Original songs:
 
 - **Stone in Focus**
   - **Artist:** Aphex Twin
